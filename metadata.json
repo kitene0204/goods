@@ -1,0 +1,6 @@
+{
+  "name": "테니스 클럽 월례대회 수령 체크 매니저",
+  "description": "테니스 클럽 총무님을 위한 스마트폰 원터치 수령 체크, 초성 검색, 구글 시트(GAS) 자동 동기화 및 엑셀 내보내기 관리 웹앱",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
