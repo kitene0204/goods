@@ -12,9 +12,10 @@ import {
   HelpCircle, 
   RefreshCw,
   Clock,
-  Sparkles
+  Sparkles,
+  DownloadCloud
 } from 'lucide-react';
-import { DEFAULT_GAS_CODE, exportToExcelCsv, syncToGoogleSheets } from '../utils/gasSync';
+import { DEFAULT_GAS_CODE, exportToExcelCsv, syncToGoogleSheets, fetchFromGoogleSheets } from '../utils/gasSync';
 
 interface GoogleSheetModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ interface GoogleSheetModalProps {
   syncHistory: SyncHistoryEntry[];
   onUpdateConfig: (newConfig: Partial<EventConfig>) => void;
   onAddSyncHistory: (entry: SyncHistoryEntry) => void;
+  onImportParticipants?: (newParticipants: Participant[]) => void;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'error') => void;
 }
 
@@ -35,11 +37,13 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
   syncHistory,
   onUpdateConfig,
   onAddSyncHistory,
+  onImportParticipants,
   onShowToast,
 }) => {
   const [gasUrl, setGasUrl] = useState(config.gasWebhookUrl || '');
   const [sheetUrl, setSheetUrl] = useState(config.googleSheetUrl || '');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
 
@@ -106,6 +110,30 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
     }
   };
 
+  const handleFetchFromGas = async () => {
+    if (!gasUrl.trim()) {
+      onShowToast('구글 앱스 스크립트(GAS) Web App URL을 먼저 입력해주세요.', 'error');
+      return;
+    }
+
+    setIsFetching(true);
+    try {
+      const res = await fetchFromGoogleSheets(gasUrl.trim(), config.title);
+      if (res.participants && res.participants.length > 0) {
+        if (onImportParticipants) {
+          onImportParticipants(res.participants);
+        }
+        onShowToast(`✅ 구글 시트에서 ${res.participants.length}명의 최신 수령 현황을 불러왔습니다!`, 'success');
+      } else {
+        onShowToast('시트에 저장된 참가자 데이터가 없습니다. 먼저 전송을 진행해주세요.', 'info');
+      }
+    } catch (err: any) {
+      onShowToast(`불러오기 실패: ${err.message}`, 'error');
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
   const handleExportCsv = () => {
     try {
       exportToExcelCsv(config, participants);
@@ -136,8 +164,8 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">구글 시트 연동 & 엑셀 내보내기</h2>
-              <p className="text-xs text-slate-500 font-medium">대회 종료 후 수령 기록을 클라우드 시트 또는 엑셀로 자동 정리</p>
+              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">구글 시트 연동 & 다중 기기 동기화</h2>
+              <p className="text-xs text-slate-500 font-medium">다른 폰이나 브라우저에서도 시트와 양방향으로 실시간 동기화</p>
             </div>
           </div>
           <button
@@ -231,27 +259,50 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
               </div>
             </div>
 
-            {/* Direct Sync Button */}
-            <div className="pt-2">
+            {/* Bidirectional Sync Buttons */}
+            <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 id="sync-gas-btn"
                 onClick={handleSyncToGas}
-                disabled={isSyncing}
-                className="w-full py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-lime-400 font-black text-sm shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                disabled={isSyncing || isFetching}
+                className="py-3 px-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-lime-400 font-black text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
               >
                 {isSyncing ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>구글 시트로 전송 중...</span>
+                    <span>시트로 전송 중...</span>
                   </>
                 ) : (
                   <>
-                    <Send className="w-4 h-4 text-lime-400" />
-                    <span>구글 시트로 현재 수령 데이터 전송하기 ({participants.filter((p) => p.checked).length}명 수령)</span>
+                    <Send className="w-4 h-4 text-lime-400 shrink-0" />
+                    <span>시트로 저장 ({participants.filter((p) => p.checked).length}명)</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                id="fetch-gas-btn"
+                onClick={handleFetchFromGas}
+                disabled={isSyncing || isFetching}
+                className="py-3 px-3 rounded-2xl bg-white hover:bg-slate-100 border-2 border-emerald-600 text-emerald-800 font-black text-xs sm:text-sm shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isFetching ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-emerald-700" />
+                    <span>시트에서 가져오는 중...</span>
+                  </>
+                ) : (
+                  <>
+                    <DownloadCloud className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>시트에서 최신현황 불러오기</span>
                   </>
                 )}
               </button>
             </div>
+            
+            <p className="text-[11px] text-slate-500 text-center font-medium">
+              💡 다른 폰이나 컴퓨터에서 열었을 때 <strong>[시트에서 최신현황 불러오기]</strong>를 누르면 동일하게 동기화됩니다!
+            </p>
           </div>
 
           {/* 1-Minute GAS Setup Guide (Collapsible or visible) */}

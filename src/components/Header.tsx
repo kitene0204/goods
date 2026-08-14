@@ -11,12 +11,18 @@ import {
   Sparkles, 
   FileSpreadsheet,
   MapPin,
-  Calendar
+  Calendar,
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 
 interface HeaderProps {
   config: EventConfig;
   participants: Participant[];
+  syncStatus?: 'idle' | 'syncing' | 'synced' | 'error';
+  lastSyncedAgo?: string;
+  isPollingActive?: boolean;
+  onPollNow?: () => void;
   onOpenSettings: () => void;
   onOpenRoster: () => void;
   onOpenGoogleSheet: () => void;
@@ -28,6 +34,10 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   config,
   participants,
+  syncStatus = 'synced',
+  lastSyncedAgo = '방금 전',
+  isPollingActive = true,
+  onPollNow,
   onOpenSettings,
   onOpenRoster,
   onOpenGoogleSheet,
@@ -41,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
   const percentage = total > 0 ? ((checkedCount / total) * 100).toFixed(1) : '0.0';
 
   return (
-    <nav className="sticky top-0 z-30 bg-slate-900 text-white px-4 sm:px-6 py-3.5 flex justify-between items-center shadow-lg border-b border-slate-800 transition-colors">
+    <nav className="sticky top-0 z-30 bg-slate-900 text-white px-4 sm:px-6 py-3 flex justify-between items-center shadow-lg border-b border-slate-800 transition-colors">
       {/* Brand & Logo */}
       <div className="flex items-center space-x-3 min-w-0">
         <div className="bg-lime-400 p-2 sm:p-2.5 rounded-xl flex items-center justify-center text-slate-900 shadow-md shadow-lime-400/20 shrink-0">
@@ -64,6 +74,38 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
+      {/* Center/Right: Live 5-second Polling Sync Pill */}
+      <div className="hidden lg:flex items-center gap-2">
+        <button
+          onClick={onPollNow}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/90 hover:bg-slate-750 border border-slate-700/80 text-xs font-medium cursor-pointer transition-all shadow-xs group"
+          title="클릭하여 즉시 최신 데이터로 동기화 (5초마다 자동 실행)"
+        >
+          {syncStatus === 'syncing' ? (
+            <>
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-lime-400" />
+              <span className="text-lime-300 font-bold">실시간 동기화 중...</span>
+            </>
+          ) : syncStatus === 'error' ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+              <span className="text-slate-300">오프라인 보관 중</span>
+            </>
+          ) : (
+            <>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-lime-400"></span>
+              </span>
+              <span className="text-slate-300 group-hover:text-white transition-colors">
+                <span className="text-lime-400 font-bold">5초 자동동기화</span> ({lastSyncedAgo})
+              </span>
+              <RefreshCw className="w-3 h-3 text-slate-500 group-hover:text-lime-400 transition-transform group-hover:rotate-180" />
+            </>
+          )}
+        </button>
+      </div>
+
       {/* Right: Real-time Stats & Actions */}
       <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
         {/* Live Status Counter */}
@@ -82,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
           title="구글 시트 동기화 및 엑셀 다운로드"
         >
           <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
-          <span className="font-extrabold">구글 시트 동기화</span>
+          <span className="font-extrabold">구글 시트 연동</span>
         </button>
 
         {/* Roster Management */}

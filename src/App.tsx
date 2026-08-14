@@ -18,6 +18,7 @@ import {
   INITIAL_PARTICIPANTS
 } from './utils/storage';
 import { matchesChosungOrText } from './utils/chosung';
+import { usePollingSync } from './hooks/usePollingSync';
 import { Header } from './components/Header';
 import { StatsBar } from './components/StatsBar';
 import { SearchBar } from './components/SearchBar';
@@ -36,7 +37,10 @@ import {
   CheckCircle2, 
   Sparkles,
   Trophy,
-  ArrowUp
+  ArrowUp,
+  RefreshCw,
+  Zap,
+  Radio
 } from 'lucide-react';
 
 export default function App() {
@@ -62,6 +66,40 @@ export default function App() {
   // 4. Toast Notifications
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
+  const showToast = useCallback((text: string, type: 'success' | 'info' | 'error' = 'info') => {
+    const newToast: ToastMessage = {
+      id: `toast-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      text,
+      type,
+    };
+    setToasts((prev) => [...prev.slice(-3), newToast]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== newToast.id));
+    }, 3200);
+  }, []);
+
+  const dismissToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  // 5. Real-Time 5-Second Polling & Background Sync Engine
+  const {
+    isPollingActive,
+    status: syncStatus,
+    lastSyncedAgoText,
+    triggerLocalChangePush,
+    pollNow,
+    pushNow,
+  } = usePollingSync({
+    config,
+    participants,
+    onUpdateParticipants: (newList) => {
+      setParticipants(newList);
+    },
+    onShowToast: showToast,
+    pollingIntervalMs: 5000,
+  });
+
   // Save to LocalStorage on changes
   useEffect(() => {
     saveEventConfig(config);
@@ -78,22 +116,6 @@ export default function App() {
   useEffect(() => {
     saveSyncHistory(syncHistory);
   }, [syncHistory]);
-
-  const showToast = useCallback((text: string, type: 'success' | 'info' | 'error' = 'info') => {
-    const newToast: ToastMessage = {
-      id: `toast-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      text,
-      type,
-    };
-    setToasts((prev) => [...prev.slice(-3), newToast]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== newToast.id));
-    }, 3200);
-  }, []);
-
-  const dismissToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
 
   // Distinct divisions from current participants
   const divisions = useMemo(() => {
@@ -140,7 +162,7 @@ export default function App() {
     return list;
   }, [participants, activeFilter, selectedDivision, searchTerm, sortOrder]);
 
-  // Handlers for Participant Actions
+  // Handlers for Participant Actions with automatic cloud broadcast
   const handleToggleCheck = (id: string) => {
     setParticipants((prev) => {
       const now = new Date();
@@ -179,6 +201,9 @@ export default function App() {
 
       return updated;
     });
+
+    // Auto push to server & GAS in background
+    triggerLocalChangePush();
   };
 
   const handleToggleItem = (participantId: string, itemId: string) => {
@@ -195,6 +220,7 @@ export default function App() {
         return p;
       })
     );
+    triggerLocalChangePush();
   };
 
   const handleUpdateParticipant = (id: string, updates: Partial<Participant>) => {
@@ -202,11 +228,13 @@ export default function App() {
       prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
     );
     showToast('참가자 정보가 업데이트되었습니다.', 'success');
+    triggerLocalChangePush();
   };
 
   const handleDeleteParticipant = (id: string) => {
     setParticipants((prev) => prev.filter((p) => p.id !== id));
     showToast('참가자가 명단에서 삭제되었습니다.', 'info');
+    triggerLocalChangePush();
   };
 
   const handleMarkAllChecked = () => {
@@ -220,6 +248,7 @@ export default function App() {
       }))
     );
     showToast('전원 수령 완료 처리되었습니다.', 'success');
+    triggerLocalChangePush();
   };
 
   const handleResetAllChecked = () => {
@@ -231,16 +260,19 @@ export default function App() {
       }))
     );
     showToast('수령 기록이 초기화되었습니다.', 'info');
+    triggerLocalChangePush();
   };
 
   const handleAddParticipant = (newP: Participant) => {
     setParticipants((prev) => [newP, ...prev]);
+    triggerLocalChangePush();
   };
 
   const handleRecordWinner = (participantId: string, prizeName: string) => {
     setParticipants((prev) =>
       prev.map((p) => (p.id === participantId ? { ...p, raffleWinnerPrize: prizeName } : p))
     );
+    triggerLocalChangePush();
   };
 
   const handleToggleTheme = () => {
@@ -268,6 +300,10 @@ export default function App() {
       <Header
         config={config}
         participants={participants}
+        syncStatus={syncStatus}
+        lastSyncedAgo={lastSyncedAgoText}
+        isPollingActive={isPollingActive}
+        onPollNow={pollNow}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenRoster={() => setIsRosterOpen(true)}
         onOpenGoogleSheet={() => setIsGoogleSheetOpen(true)}
@@ -302,33 +338,58 @@ export default function App() {
               </div>
             </div>
 
-            {/* Google Sheets Sync Card */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2.5">
+            {/* 5-Second Real-Time Auto-Polling Status Card */}
+            <div className="bg-slate-900 text-white border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-lime-400"></span>
                   </span>
-                  <span className="text-xs font-black text-emerald-900">구글 시트 실시간 연동</span>
+                  <span className="text-xs font-black text-lime-300">5초 자동 동기화 활성</span>
                 </div>
                 <button
-                  onClick={() => setIsGoogleSheetOpen(true)}
-                  className="text-[11px] font-black text-emerald-700 hover:underline cursor-pointer"
+                  onClick={pollNow}
+                  className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-lime-400 transition-colors cursor-pointer"
+                  title="지금 즉시 동기화"
                 >
-                  설정
+                  <RefreshCw className={`w-3.5 h-3.5 ${syncStatus === 'syncing' ? 'animate-spin text-lime-400' : ''}`} />
                 </button>
               </div>
-              <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
-                현장 수령 체크 내역이 즉시 동기화되고, 엑셀 파일로 백업할 수 있습니다.
+
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between text-slate-400">
+                  <span>동기화 상태:</span>
+                  <span className="font-bold text-slate-200">
+                    {syncStatus === 'syncing' ? '동기화 중...' : syncStatus === 'error' ? '오프라인 보관' : '최신 유지 중'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>마지막 동기화:</span>
+                  <span className="font-mono text-lime-400 font-bold">{lastSyncedAgoText}</span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                A 사용자가 체크하면 B 사용자의 화면도 <strong>5초마다 자동으로 갱신</strong>됩니다.
               </p>
-              <button
-                onClick={() => setIsGoogleSheetOpen(true)}
-                className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-                <span>시트 전송 및 엑셀 다운</span>
-              </button>
+
+              <div className="grid grid-cols-2 gap-1.5 pt-1">
+                <button
+                  onClick={pollNow}
+                  className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                >
+                  <RefreshCw className="w-3 h-3 text-lime-400" />
+                  <span>즉시 새로고침</span>
+                </button>
+                <button
+                  onClick={pushNow}
+                  className="py-1.5 px-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 text-xs font-black flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Zap className="w-3 h-3 text-slate-950" />
+                  <span>시트 즉시저장</span>
+                </button>
+              </div>
             </div>
 
             {/* Quick Manager Actions */}
@@ -348,6 +409,17 @@ export default function App() {
                 <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">
                   {total}명
                 </span>
+              </button>
+
+              <button
+                id="sidebar-sheets-btn"
+                onClick={() => setIsGoogleSheetOpen(true)}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  <span>구글 시트 연동 설정</span>
+                </div>
               </button>
 
               <button
@@ -438,6 +510,7 @@ export default function App() {
                     onClick={() => {
                       setParticipants(INITIAL_PARTICIPANTS);
                       showToast('샘플 참가자 16명 명단을 불러왔습니다.', 'success');
+                      triggerLocalChangePush();
                     }}
                     className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm border border-slate-300 flex items-center gap-1.5 cursor-pointer shadow-sm"
                   >
@@ -505,30 +578,40 @@ export default function App() {
       </div>
 
       {/* 3. Mobile Bottom Quick Floating Bar */}
-      <div className="fixed bottom-0 inset-x-0 z-20 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 lg:hidden shadow-xl">
+      <div className="fixed bottom-0 inset-x-0 z-20 bg-white/95 backdrop-blur-md border-t border-slate-200 p-2.5 lg:hidden shadow-xl">
         <div className="flex items-center justify-between gap-2 max-w-md mx-auto">
-          <div className="flex items-center gap-2 text-xs pl-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-lime-500" />
-            <span className="font-mono font-black text-slate-900 text-sm">
-              {checkedCount}/{total}명
+          <div className="flex items-center gap-1.5 text-xs pl-1">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-lime-500"></span>
             </span>
-            <span className="text-slate-500 font-medium">수령 완료</span>
+            <span className="font-mono font-black text-slate-900 text-sm">
+              {checkedCount}/{total}
+            </span>
+            <button
+              onClick={pollNow}
+              className="text-[10px] text-slate-500 hover:text-slate-900 flex items-center gap-0.5 font-medium ml-1"
+              title="5초마다 자동 동기화됩니다"
+            >
+              <span>5초동기화</span>
+              <RefreshCw className={`w-2.5 h-2.5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+            </button>
           </div>
 
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setIsRosterOpen(true)}
-              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1 cursor-pointer"
             >
               <Clipboard className="w-3.5 h-3.5 text-blue-600" />
-              <span>명단추가</span>
+              <span>명단</span>
             </button>
             <button
               onClick={() => setIsGoogleSheetOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-lime-400 text-xs font-black flex items-center gap-1 shadow-sm cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-lime-400 text-xs font-black flex items-center gap-1 shadow-sm cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-lime-400" />
-              <span>시트/엑셀</span>
+              <span>시트연동</span>
             </button>
           </div>
         </div>
@@ -540,7 +623,10 @@ export default function App() {
         onClose={() => setIsRosterOpen(false)}
         participants={participants}
         clubMembers={clubMembers}
-        onSetParticipants={setParticipants}
+        onSetParticipants={(newP) => {
+          setParticipants(newP);
+          triggerLocalChangePush();
+        }}
         onAddParticipant={handleAddParticipant}
         onUpdateClubMembers={setClubMembers}
         onShowToast={showToast}
@@ -552,8 +638,15 @@ export default function App() {
         config={config}
         participants={participants}
         syncHistory={syncHistory}
-        onUpdateConfig={(updates) => setConfig((prev) => ({ ...prev, ...updates }))}
+        onUpdateConfig={(updates) => {
+          setConfig((prev) => ({ ...prev, ...updates }));
+          triggerLocalChangePush();
+        }}
         onAddSyncHistory={(entry) => setSyncHistory((prev) => [entry, ...prev])}
+        onImportParticipants={(newP) => {
+          setParticipants(newP);
+          triggerLocalChangePush();
+        }}
         onShowToast={showToast}
       />
 
@@ -570,7 +663,10 @@ export default function App() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         config={config}
-        onSaveConfig={setConfig}
+        onSaveConfig={(newC) => {
+          setConfig(newC);
+          triggerLocalChangePush();
+        }}
         onShowToast={showToast}
       />
 
@@ -579,3 +675,4 @@ export default function App() {
     </div>
   );
 }
+

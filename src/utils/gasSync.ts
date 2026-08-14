@@ -38,7 +38,7 @@ function doPost(e) {
       sheet.setFrozenRows(1);
     }
     
-    // 기존 데이터 덮어쓰기 or 누적 기록 (기존 내용 초기화 후 최신 현황으로 갱신)
+    // 기존 내용 초기화 후 최신 현황으로 갱신
     var lastRow = sheet.getLastRow();
     if (lastRow > 1) {
       sheet.deleteRows(2, lastRow - 1);
@@ -90,9 +90,115 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  return ContentService.createTextOutput("테니스 월례대회 수령 체크 웹앱 GAS 서비스가 정상 동작 중입니다.").setMimeType(ContentService.MimeType.TEXT);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetName = (e && e.parameter && e.parameter.eventTitle) ? e.parameter.eventTitle : "";
+    sheetName = sheetName.replace(/[:\\\\/?*\\[\\]]/g, "_").substring(0, 30);
+    var sheet = sheetName ? ss.getSheetByName(sheetName) : null;
+    if (!sheet) {
+      sheet = ss.getSheets()[0];
+    }
+    
+    if (!sheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        message: "시트를 찾을 수 없습니다."
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        sheetName: sheet.getName(),
+        participants: []
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var participants = [];
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      if (!row[1]) continue;
+      
+      var isChecked = String(row[4]).trim() === "수령완료";
+      var proxyVal = String(row[6] || "").trim();
+      var hasProxy = proxyVal !== "" && proxyVal !== "-";
+      var actualProxy = (hasProxy && proxyVal !== "대리수령") ? proxyVal : "";
+      
+      var prizeVal = String(row[8] || "").trim();
+      var rafflePrize = (prizeVal !== "" && prizeVal !== "-") ? prizeVal : undefined;
+
+      participants.push({
+        id: "p-sheet-" + i + "-" + String(row[1]).trim(),
+        name: String(row[1]).trim(),
+        division: String(row[2] || "일반").trim(),
+        phone: String(row[3] || "").trim(),
+        checked: isChecked,
+        checkedAt: String(row[5] || ""),
+        isProxy: hasProxy,
+        proxyName: actualProxy,
+        raffleWinnerPrize: rafflePrize,
+        notes: String(row[9] || "").trim(),
+        items: {}
+      });
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      sheetName: sheet.getName(),
+      participants: participants
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
 }
 `;
+
+export async function fetchFromGoogleSheets(
+  gasUrl: string,
+  eventTitle?: string
+): Promise<{ success: boolean; participants?: Participant[]; message: string }> {
+  if (!gasUrl || !gasUrl.trim().startsWith('http')) {
+    throw new Error('올바른 구글 앱스 스크립트(GAS) Web App URL을 입력해주세요.');
+  }
+
+  const url = new URL(gasUrl);
+  if (eventTitle) {
+    url.searchParams.set('eventTitle', eventTitle);
+  }
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`구글 시트 요청 실패 (상태 코드: ${response.status})`);
+  }
+
+  const text = await response.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error('구글 시트 응답을 해석할 수 없습니다. 스크립트 배포 상태를 확인해주세요.');
+  }
+
+  if (json.status === 'error') {
+    throw new Error(json.message || '시트 데이터를 가져오지 못했습니다.');
+  }
+
+  return {
+    success: true,
+    participants: json.participants || [],
+    message: `${json.participants?.length || 0}명의 명단을 구글 시트에서 성공적으로 불러왔습니다!`,
+  };
+}
 
 export async function syncToGoogleSheets(
   gasUrl: string,
