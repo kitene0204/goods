@@ -53,6 +53,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
   const [newDivision, setNewDivision] = useState<TournamentDivision>('일반');
   const [newPhone, setNewPhone] = useState('');
   const [newGroup, setNewGroup] = useState('');
+  const [saveToClubDb, setSaveToClubDb] = useState(false);
 
   if (!isOpen) return null;
 
@@ -127,6 +128,42 @@ export const RosterModal: React.FC<RosterModalProps> = ({
     onShowToast('샘플 회원 22명 데이터가 복원되었습니다.', 'info');
   };
 
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  // Club Member DB operations
+  const handleDeleteSingleMember = (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation();
+    const updated = clubMembers.filter((m) => m.id !== id);
+    onUpdateClubMembers(updated);
+    
+    // Also remove from selected
+    const nextSelected = new Set(selectedMemberIds);
+    nextSelected.delete(id);
+    setSelectedMemberIds(nextSelected);
+
+    onShowToast(`회원 '${name}' 님이 클럽 DB에서 삭제되었습니다.`, 'info');
+  };
+
+  const handleDeleteSelectedMembers = () => {
+    if (selectedMemberIds.size === 0) {
+      onShowToast('삭제할 회원을 먼저 선택해주세요.', 'error');
+      return;
+    }
+
+    const count = selectedMemberIds.size;
+    const updated = clubMembers.filter((m) => !selectedMemberIds.has(m.id));
+    onUpdateClubMembers(updated);
+    setSelectedMemberIds(new Set());
+    onShowToast(`선택한 회원 ${count}명이 클럽 DB에서 삭제되었습니다.`, 'info');
+  };
+
+  const handleClearAllClubMembers = () => {
+    onUpdateClubMembers([]);
+    setSelectedMemberIds(new Set());
+    setShowClearConfirm(false);
+    onShowToast('클럽 회원 DB가 모두 삭제되었습니다.', 'info');
+  };
+
   const handleAddManualParticipant = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) {
@@ -147,7 +184,20 @@ export const RosterModal: React.FC<RosterModalProps> = ({
     };
 
     onAddParticipant(newP);
-    onShowToast(`${newP.name} 회원이 추가되었습니다!`, 'success');
+
+    if (saveToClubDb) {
+      const newMember: ClubMember = {
+        id: `cm-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        name: newP.name,
+        phone: newP.phone,
+        division: newP.division,
+      };
+      onUpdateClubMembers([...clubMembers, newMember]);
+      onShowToast(`${newP.name} 님이 대회 명단 및 클럽 회원 DB에 추가되었습니다!`, 'success');
+    } else {
+      onShowToast(`${newP.name} 님이 대회 명단에 추가되었습니다!`, 'success');
+    }
+
     setNewName('');
     setNewPhone('');
     setNewGroup('');
@@ -325,71 +375,182 @@ export const RosterModal: React.FC<RosterModalProps> = ({
           {/* TAB 2: CLUB MASTER DB */}
           {activeTab === 'clubDb' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              {/* Header & Action Controls */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div>
-                  <h3 className="text-xs sm:text-sm font-bold text-slate-900">클럽 상시 회원 명단 ({clubMembers.length}명)</h3>
-                  <p className="text-[11px] text-slate-500">오늘 출전하는 회원을 체크하여 대회 참석자 명단을 구성합니다.</p>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <span>클럽 상시 회원 명단</span>
+                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 font-extrabold text-xs font-mono">
+                      {clubMembers.length}명
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500">대회에 참석할 회원을 체크하여 대회 명단으로 등록합니다.</p>
                 </div>
-                <div className="flex items-center gap-1.5">
+
+                <div className="flex flex-wrap items-center gap-1.5">
                   <button
                     onClick={handleSelectAllMembers}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
+                    disabled={clubMembers.length === 0}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 text-xs font-bold cursor-pointer transition-colors"
                   >
                     전체 선택
                   </button>
                   <button
                     onClick={handleDeselectAllMembers}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
+                    disabled={selectedMemberIds.size === 0}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 text-xs font-bold cursor-pointer transition-colors"
                   >
                     선택 해제
                   </button>
+
+                  {/* Selected Delete button */}
+                  {selectedMemberIds.size > 0 && (
+                    <button
+                      id="delete-selected-members-btn"
+                      onClick={handleDeleteSelectedMembers}
+                      className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold cursor-pointer flex items-center gap-1 transition-colors"
+                      title="선택한 회원들을 클럽 DB에서 삭제합니다"
+                    >
+                      <Trash2 className="w-3 h-3 text-rose-600" />
+                      <span>선택 {selectedMemberIds.size}명 삭제</span>
+                    </button>
+                  )}
+
+                  {/* Clear All DB button */}
+                  {clubMembers.length > 0 && (
+                    <button
+                      id="clear-club-db-btn"
+                      onClick={() => setShowClearConfirm(true)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-bold cursor-pointer flex items-center gap-1 transition-colors"
+                      title="클럽 회원 DB 전체 비우기"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>전체 비우기</span>
+                    </button>
+                  )}
+
+                  {/* Sample DB button */}
                   <button
                     onClick={handleLoadSampleRoster}
-                    className="px-2.5 py-1 rounded-lg bg-lime-100 text-slate-900 hover:bg-lime-200 text-xs font-black cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-lime-100 text-slate-900 hover:bg-lime-200 text-xs font-black cursor-pointer flex items-center gap-1 transition-colors"
                     title="샘플 회원 DB 불러오기"
                   >
-                    샘플 22명 DB
+                    <RotateCcw className="w-3 h-3" />
+                    <span>샘플 22명 DB</span>
                   </button>
                 </div>
               </div>
 
-              {/* Members List with checkboxes */}
-              <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
-                {clubMembers.map((member) => {
-                  const isSelected = selectedMemberIds.has(member.id);
-                  return (
-                    <div
-                      key={member.id}
-                      onClick={() => handleToggleMemberSelection(member.id)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-lime-50/80 border-lime-400 text-slate-900 shadow-xs'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
+              {/* Clear All Confirmation Dialog */}
+              {showClearConfirm && (
+                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-950 space-y-2 animate-in fade-in">
+                  <div className="font-bold flex items-center gap-1.5 text-rose-900">
+                    <Trash2 className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>정말로 클럽 회원 DB (총 {clubMembers.length}명)을 모두 삭제하시겠습니까?</span>
+                  </div>
+                  <p className="text-rose-800 text-[11px] font-medium leading-relaxed">
+                    삭제 시 상시 회원 명단이 완전히 비워지며, 필요할 때 언제든 '샘플 22명 DB' 버튼이나 카톡 투표 붙여넣기로 다시 등록하실 수 있습니다.
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={handleClearAllClubMembers}
+                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs cursor-pointer shadow-xs"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors ${
-                            isSelected
-                              ? 'bg-lime-500 border-lime-500 text-slate-950 font-bold'
-                              : 'border-slate-300 bg-white'
-                          }`}
-                        >
-                          {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      전체 삭제 확인
+                    </button>
+                    <button
+                      onClick={() => setShowClearConfirm(false)}
+                      className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs cursor-pointer"
+                    >
+                      취소
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {clubMembers.length === 0 ? (
+                <div className="p-8 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-200 text-slate-500 mx-auto flex items-center justify-center font-bold">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-slate-800">등록된 클럽 회원이 없습니다</h4>
+                    <p className="text-xs text-slate-500">
+                      클럽 상시 회원 DB가 비어 있습니다. 샘플 데이터를 불러오거나 카톡 투표 명단을 붙여넣어 등록해보세요.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 pt-2">
+                    <button
+                      onClick={handleLoadSampleRoster}
+                      className="px-3.5 py-2 rounded-xl bg-lime-400 hover:bg-lime-500 text-slate-950 font-black text-xs cursor-pointer shadow-xs flex items-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>샘플 22명 DB 불러오기</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('paste')}
+                      className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Clipboard className="w-3.5 h-3.5 text-slate-700" />
+                      <span>카톡 명단 붙여넣기</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Members List with checkboxes and individual delete buttons */
+                <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
+                  {clubMembers.map((member) => {
+                    const isSelected = selectedMemberIds.has(member.id);
+                    return (
+                      <div
+                        key={member.id}
+                        onClick={() => handleToggleMemberSelection(member.id)}
+                        className={`group flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-lime-50/80 border-lime-400 text-slate-900 shadow-xs'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors shrink-0 ${
+                              isSelected
+                                ? 'bg-lime-500 border-lime-500 text-slate-950 font-bold'
+                                : 'border-slate-300 bg-white'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          </div>
+                          <span className="font-black text-sm text-slate-900 truncate">{member.name}</span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold shrink-0">
+                            {member.division}
+                          </span>
+                          {member.ntrp && (
+                            <span className="text-[11px] text-slate-500 font-mono hidden sm:inline shrink-0">
+                              NTRP {member.ntrp}
+                            </span>
+                          )}
                         </div>
-                        <span className="font-black text-sm text-slate-900">{member.name}</span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold">
-                          {member.division}
-                        </span>
-                        {member.ntrp && (
-                          <span className="text-[11px] text-slate-500 font-mono">NTRP {member.ntrp}</span>
-                        )}
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-xs font-mono text-slate-500 hidden sm:inline">{member.phone}</span>
+
+                          {/* Individual Delete Button */}
+                          <button
+                            id={`delete-member-${member.id}`}
+                            onClick={(e) => handleDeleteSingleMember(e, member.id, member.name)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer opacity-70 group-hover:opacity-100"
+                            title={`'${member.name}' 회원을 DB에서 삭제`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                      <span className="text-xs font-mono text-slate-500">{member.phone}</span>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -451,6 +612,19 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-lime-500"
                   />
                 </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="save-to-club-db-checkbox"
+                  checked={saveToClubDb}
+                  onChange={(e) => setSaveToClubDb(e.target.checked)}
+                  className="w-4 h-4 rounded text-lime-600 focus:ring-lime-500 cursor-pointer"
+                />
+                <label htmlFor="save-to-club-db-checkbox" className="text-xs font-bold text-slate-800 cursor-pointer">
+                  클럽 상시 회원 DB에도 함께 등록하기
+                </label>
               </div>
 
               <button
