@@ -1,9 +1,9 @@
 import { EventConfig, Participant, ClubMember, SyncHistoryEntry } from '../types';
 
 const STORAGE_KEYS = {
-  EVENT_CONFIG: 'tennis_checkin_event_config',
-  PARTICIPANTS: 'tennis_checkin_participants',
-  CLUB_MEMBERS: 'tennis_checkin_club_members',
+  EVENT_CONFIG: 'tennis_checkin_event_config_v3',
+  PARTICIPANTS: 'tennis_checkin_participants_v3',
+  CLUB_MEMBERS: 'tennis_checkin_club_members_v3',
   SYNC_HISTORY: 'tennis_checkin_sync_history',
 };
 
@@ -11,8 +11,8 @@ export const DEFAULT_GAS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfyc
 
 export const INITIAL_EVENT_CONFIG: EventConfig = {
   id: 'event-2026-08',
-  title: '2026년 8월 에이스 테니스클럽 정기 월례대회',
-  clubName: '에이스 테니스클럽',
+  title: '2026년 한울림 테니스클럽 정기 월례대회',
+  clubName: '한울림 테니스클럽',
   date: '2026-08-16',
   location: '올림픽공원 테니스장 1~4번 코트',
   primaryItemName: '참가 웰컴 패키지 (테니스 타월 & 댐프너)',
@@ -29,37 +29,92 @@ export const INITIAL_EVENT_CONFIG: EventConfig = {
   fontSize: 'normal',
 };
 
-export const SAMPLE_CLUB_MEMBERS: ClubMember[] = [
-  { id: 'm-1', name: '김민수', phone: '010-2345-6789', division: '금배부', gender: '남', ntrp: '4.5', memberNumber: '001' },
-  { id: 'm-2', name: '이수진', phone: '010-3456-7890', division: '은배부', gender: '여', ntrp: '3.5', memberNumber: '002' },
-  { id: 'm-3', name: '박준형', phone: '010-4567-8901', division: '금배부', gender: '남', ntrp: '4.0', memberNumber: '003' },
-  { id: 'm-4', name: '최유나', phone: '010-5678-9012', division: '동배부', gender: '여', ntrp: '3.0', memberNumber: '004' },
-  { id: 'm-5', name: '정태우', phone: '010-6789-0123', division: '신인부', gender: '남', ntrp: '2.5', memberNumber: '005' },
-  { id: 'm-6', name: '강동원', phone: '010-7890-1234', division: '마스터즈', gender: '남', ntrp: '5.0', memberNumber: '006' },
-  { id: 'm-7', name: '한지민', phone: '010-8901-2345', division: '은배부', gender: '여', ntrp: '3.5', memberNumber: '007' },
-  { id: 'm-8', name: '윤도현', phone: '010-9012-3456', division: '동배부', gender: '남', ntrp: '3.0', memberNumber: '008' },
-  { id: 'm-9', name: '송혜교', phone: '010-1122-3344', division: '은배부', gender: '여', ntrp: '3.5', memberNumber: '009' },
-  { id: 'm-10', name: '조인성', phone: '010-2233-4455', division: '금배부', gender: '남', ntrp: '4.0', memberNumber: '010' },
-  { id: 'm-11', name: '배수지', phone: '010-3344-5566', division: '동배부', gender: '여', ntrp: '3.0', memberNumber: '011' },
-  { id: 'm-12', name: '유재석', phone: '010-4455-6677', division: '마스터즈', gender: '남', ntrp: '4.5', memberNumber: '012' },
-  { id: 'm-13', name: '하동훈', phone: '010-5566-7788', division: '신인부', gender: '남', ntrp: '2.5', memberNumber: '013' },
-  { id: 'm-14', name: '김태희', phone: '010-6677-8899', division: '은배부', gender: '여', ntrp: '3.5', memberNumber: '014' },
-  { id: 'm-15', name: '현빈', phone: '010-7788-9900', division: '금배부', gender: '남', ntrp: '4.5', memberNumber: '015' },
-  { id: 'm-16', name: '손예진', phone: '010-8899-0011', division: '은배부', gender: '여', ntrp: '3.5', memberNumber: '016' },
-  { id: 'm-17', name: '이광수', phone: '010-9900-1122', division: '동배부', gender: '남', ntrp: '3.0', memberNumber: '017' },
-  { id: 'm-18', name: '송지효', phone: '010-1234-9876', division: '은배부', gender: '여', ntrp: '3.5', memberNumber: '018' },
-  { id: 'm-19', name: '지석진', phone: '010-2345-8765', division: '신인부', gender: '남', ntrp: '2.5', memberNumber: '019' },
-  { id: 'm-20', name: '김종국', phone: '010-3456-7654', division: '마스터즈', gender: '남', ntrp: '5.0', memberNumber: '020' },
-  { id: 'm-21', name: '차은우', phone: '010-4567-6543', division: '금배부', gender: '남', ntrp: '4.0', memberNumber: '021' },
-  { id: 'm-22', name: '아이유', phone: '010-5678-5432', division: '신인부', gender: '여', ntrp: '2.5', memberNumber: '022' },
+// 한울림 테니스클럽 전체 회원 DB (중복 없이 정돈된 73명)
+export const HANWOOLIM_CLUB_MEMBERS: ClubMember[] = [
+  { id: 'm-1', name: '강명규', phone: '', division: '일반', memberNumber: '001' },
+  { id: 'm-2', name: '강석원', phone: '', division: '일반', memberNumber: '002' },
+  { id: 'm-3', name: '강운석', phone: '', division: '일반', memberNumber: '003' },
+  { id: 'm-4', name: '강전성', phone: '', division: '일반', memberNumber: '004' },
+  { id: 'm-5', name: '고광직', phone: '', division: '일반', memberNumber: '005' },
+  { id: 'm-6', name: '권용국', phone: '', division: '일반', memberNumber: '006' },
+  { id: 'm-7', name: '김동찬', phone: '', division: '일반', memberNumber: '007' },
+  { id: 'm-8', name: '김선경', phone: '', division: '일반', memberNumber: '008' },
+  { id: 'm-9', name: '김영수', phone: '', division: '일반', memberNumber: '009' },
+  { id: 'm-10', name: '김영현', phone: '', division: '일반', memberNumber: '010' },
+  { id: 'm-11', name: '김요셉', phone: '', division: '일반', memberNumber: '011' },
+  { id: 'm-12', name: '김일태', phone: '', division: '일반', memberNumber: '012' },
+  { id: 'm-13', name: '김재선', phone: '', division: '일반', memberNumber: '013' },
+  { id: 'm-14', name: '김준관', phone: '', division: '일반', memberNumber: '014' },
+  { id: 'm-15', name: '김준동', phone: '', division: '일반', memberNumber: '015' },
+  { id: 'm-16', name: '김진규', phone: '', division: '일반', memberNumber: '016' },
+  { id: 'm-17', name: '김태균', phone: '', division: '일반', memberNumber: '017' },
+  { id: 'm-18', name: '김한진', phone: '', division: '일반', memberNumber: '018' },
+  { id: 'm-19', name: '김현우', phone: '', division: '일반', memberNumber: '019' },
+  { id: 'm-20', name: '문범준', phone: '', division: '일반', memberNumber: '020' },
+  { id: 'm-21', name: '문현덕', phone: '', division: '일반', memberNumber: '021' },
+  { id: 'm-22', name: '박공래', phone: '', division: '일반', memberNumber: '022' },
+  { id: 'm-23', name: '박광전', phone: '', division: '일반', memberNumber: '023' },
+  { id: 'm-24', name: '박력', phone: '', division: '일반', memberNumber: '024' },
+  { id: 'm-25', name: '박의경', phone: '', division: '일반', memberNumber: '025' },
+  { id: 'm-26', name: '박정태', phone: '', division: '일반', memberNumber: '026' },
+  { id: 'm-27', name: '배동연', phone: '', division: '일반', memberNumber: '027' },
+  { id: 'm-28', name: '배정민', phone: '', division: '일반', memberNumber: '028' },
+  { id: 'm-29', name: '배지혁', phone: '', division: '일반', memberNumber: '029' },
+  { id: 'm-30', name: '서영진', phone: '', division: '일반', memberNumber: '030' },
+  { id: 'm-31', name: '서예찬', phone: '', division: '일반', memberNumber: '031' },
+  { id: 'm-32', name: '서재원', phone: '', division: '일반', memberNumber: '032' },
+  { id: 'm-33', name: '석영수', phone: '', division: '일반', memberNumber: '033' },
+  { id: 'm-34', name: '송인한', phone: '', division: '일반', memberNumber: '034' },
+  { id: 'm-35', name: '송준민', phone: '', division: '일반', memberNumber: '035' },
+  { id: 'm-36', name: '신민철', phone: '', division: '일반', memberNumber: '036' },
+  { id: 'm-37', name: '신성화', phone: '', division: '일반', memberNumber: '037' },
+  { id: 'm-38', name: '신해련', phone: '', division: '일반', memberNumber: '038' },
+  { id: 'm-39', name: '염규생', phone: '', division: '일반', memberNumber: '039' },
+  { id: 'm-40', name: '오승찬', phone: '', division: '일반', memberNumber: '040' },
+  { id: 'm-41', name: '온재승', phone: '', division: '일반', memberNumber: '041' },
+  { id: 'm-42', name: '유경일', phone: '', division: '일반', memberNumber: '042' },
+  { id: 'm-43', name: '윤찬솔', phone: '', division: '일반', memberNumber: '043' },
+  { id: 'm-44', name: '은희광', phone: '', division: '일반', memberNumber: '044' },
+  { id: 'm-45', name: '이경훈', phone: '', division: '일반', memberNumber: '045' },
+  { id: 'm-46', name: '이계현', phone: '', division: '일반', memberNumber: '046' },
+  { id: 'm-47', name: '이병훈', phone: '', division: '일반', memberNumber: '047' },
+  { id: 'm-48', name: '이성훈', phone: '', division: '일반', memberNumber: '048' },
+  { id: 'm-49', name: '이종선', phone: '', division: '일반', memberNumber: '049' },
+  { id: 'm-50', name: '이창민', phone: '', division: '일반', memberNumber: '050' },
+  { id: 'm-51', name: '이충효', phone: '', division: '일반', memberNumber: '051' },
+  { id: 'm-52', name: '임강문', phone: '', division: '일반', memberNumber: '052' },
+  { id: 'm-53', name: '임상섭', phone: '', division: '일반', memberNumber: '053' },
+  { id: 'm-54', name: '임태승', phone: '', division: '일반', memberNumber: '054' },
+  { id: 'm-55', name: '장종석', phone: '', division: '일반', memberNumber: '055' },
+  { id: 'm-56', name: '전만국', phone: '', division: '일반', memberNumber: '056' },
+  { id: 'm-57', name: '전훈', phone: '', division: '일반', memberNumber: '057' },
+  { id: 'm-58', name: '정재용', phone: '', division: '일반', memberNumber: '058' },
+  { id: 'm-59', name: '정진안', phone: '', division: '일반', memberNumber: '059' },
+  { id: 'm-60', name: '정현욱', phone: '', division: '일반', memberNumber: '060' },
+  { id: 'm-61', name: '정홍모', phone: '', division: '일반', memberNumber: '061' },
+  { id: 'm-62', name: '조우영', phone: '', division: '일반', memberNumber: '062' },
+  { id: 'm-63', name: '천승진', phone: '', division: '일반', memberNumber: '063' },
+  { id: 'm-64', name: '최규성', phone: '', division: '일반', memberNumber: '064' },
+  { id: 'm-65', name: '최수민', phone: '', division: '일반', memberNumber: '065' },
+  { id: 'm-66', name: '편보성', phone: '', division: '일반', memberNumber: '066' },
+  { id: 'm-67', name: '현대삼', phone: '', division: '일반', memberNumber: '067' },
+  { id: 'm-68', name: '홍성완', phone: '', division: '일반', memberNumber: '068' },
+  { id: 'm-69', name: '서재원w', phone: '', division: '일반', memberNumber: '069' },
+  { id: 'm-70', name: '한언석', phone: '', division: '일반', memberNumber: '070' },
+  { id: 'm-71', name: '유봉수', phone: '', division: '일반', memberNumber: '071' },
+  { id: 'm-72', name: '이정식', phone: '', division: '일반', memberNumber: '072' },
+  { id: 'm-73', name: '김한준', phone: '', division: '일반', memberNumber: '073' },
 ];
 
+export const SAMPLE_CLUB_MEMBERS = HANWOOLIM_CLUB_MEMBERS;
+
+// 한울림 회원 명부 기반 기본 대회 참석자 샘플
 export const INITIAL_PARTICIPANTS: Participant[] = [
   {
     id: 'p-1',
-    name: '김민수',
-    phone: '010-2345-6789',
-    division: '금배부',
+    name: '강명규',
+    phone: '',
+    division: '일반',
     group: '1코트',
     checked: true,
     checkedAt: '08:42',
@@ -68,20 +123,20 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
   },
   {
     id: 'p-2',
-    name: '이수진',
-    phone: '010-3456-7890',
-    division: '은배부',
-    group: '2코트',
+    name: '강석원',
+    phone: '',
+    division: '일반',
+    group: '1코트',
     checked: true,
     checkedAt: '08:50',
     items: { gift: true, lunch: false, fee: true, prize: false },
   },
   {
     id: 'p-3',
-    name: '박준형',
-    phone: '010-4567-8901',
-    division: '금배부',
-    group: '1코트',
+    name: '강운석',
+    phone: '',
+    division: '일반',
+    group: '2코트',
     checked: false,
     checkedAt: null,
     items: { gift: false, lunch: false, fee: true, prize: false },
@@ -89,135 +144,93 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
   },
   {
     id: 'p-4',
-    name: '최유나',
-    phone: '010-5678-9012',
-    division: '동배부',
-    group: '3코트',
+    name: '고광직',
+    phone: '',
+    division: '일반',
+    group: '2코트',
     checked: true,
     checkedAt: '09:05',
     items: { gift: true, lunch: true, fee: true, prize: true },
-    isProxy: true,
-    proxyName: '한지민',
-    notes: '지민 회원님이 대리 수령',
+    isProxy: false,
   },
   {
     id: 'p-5',
-    name: '정태우',
-    phone: '010-6789-0123',
-    division: '신인부',
-    group: '4코트',
+    name: '권용국',
+    phone: '',
+    division: '일반',
+    group: '3코트',
     checked: false,
     checkedAt: null,
     items: { gift: false, lunch: false, fee: false, prize: false },
   },
   {
     id: 'p-6',
-    name: '강동원',
-    phone: '010-7890-1234',
-    division: '마스터즈',
-    group: '1코트',
+    name: '김동찬',
+    phone: '',
+    division: '일반',
+    group: '3코트',
     checked: true,
     checkedAt: '09:12',
     items: { gift: true, lunch: true, fee: true, prize: false },
   },
   {
     id: 'p-7',
-    name: '한지민',
-    phone: '010-8901-2345',
-    division: '은배부',
-    group: '2코트',
+    name: '김선경',
+    phone: '',
+    division: '일반',
+    group: '4코트',
     checked: true,
     checkedAt: '09:15',
     items: { gift: true, lunch: true, fee: true, prize: false },
   },
   {
     id: 'p-8',
-    name: '윤도현',
-    phone: '010-9012-3456',
-    division: '동배부',
-    group: '3코트',
-    checked: false,
-    checkedAt: null,
-    items: { gift: false, lunch: false, fee: true, prize: false },
-  },
-  {
-    id: 'p-9',
-    name: '송혜교',
-    phone: '010-1122-3344',
-    division: '은배부',
-    group: '2코트',
-    checked: false,
-    checkedAt: null,
-    items: { gift: false, lunch: false, fee: true, prize: false },
-  },
-  {
-    id: 'p-10',
-    name: '조인성',
-    phone: '010-2233-4455',
-    division: '금배부',
-    group: '1코트',
-    checked: true,
-    checkedAt: '09:25',
-    items: { gift: true, lunch: false, fee: true, prize: false },
-  },
-  {
-    id: 'p-11',
-    name: '배수지',
-    phone: '010-3344-5566',
-    division: '동배부',
-    group: '3코트',
-    checked: false,
-    checkedAt: null,
-    items: { gift: false, lunch: false, fee: false, prize: false },
-  },
-  {
-    id: 'p-12',
-    name: '유재석',
-    phone: '010-4455-6677',
-    division: '마스터즈',
-    group: '1코트',
-    checked: true,
-    checkedAt: '09:30',
-    items: { gift: true, lunch: true, fee: true, prize: true },
-  },
-  {
-    id: 'p-13',
-    name: '하동훈',
-    phone: '010-5566-7788',
-    division: '신인부',
+    name: '김영수',
+    phone: '',
+    division: '일반',
     group: '4코트',
     checked: false,
     checkedAt: null,
     items: { gift: false, lunch: false, fee: true, prize: false },
   },
   {
-    id: 'p-14',
-    name: '김태희',
-    phone: '010-6677-8899',
-    division: '은배부',
+    id: 'p-9',
+    name: '김영현',
+    phone: '',
+    division: '일반',
+    group: '1코트',
+    checked: false,
+    checkedAt: null,
+    items: { gift: false, lunch: false, fee: true, prize: false },
+  },
+  {
+    id: 'p-10',
+    name: '김요셉',
+    phone: '',
+    division: '일반',
     group: '2코트',
+    checked: true,
+    checkedAt: '09:25',
+    items: { gift: true, lunch: false, fee: true, prize: false },
+  },
+  {
+    id: 'p-11',
+    name: '배지혁',
+    phone: '',
+    division: '일반',
+    group: '3코트',
+    checked: true,
+    checkedAt: '09:30',
+    items: { gift: true, lunch: true, fee: true, prize: true },
+  },
+  {
+    id: 'p-12',
+    name: '이정식',
+    phone: '',
+    division: '일반',
+    group: '4코트',
     checked: true,
     checkedAt: '09:35',
-    items: { gift: true, lunch: true, fee: true, prize: false },
-  },
-  {
-    id: 'p-15',
-    name: '현빈',
-    phone: '010-7788-9900',
-    division: '금배부',
-    group: '1코트',
-    checked: true,
-    checkedAt: '09:40',
-    items: { gift: true, lunch: true, fee: true, prize: false },
-  },
-  {
-    id: 'p-16',
-    name: '손예진',
-    phone: '010-8899-0011',
-    division: '은배부',
-    group: '2코트',
-    checked: true,
-    checkedAt: '09:41',
     items: { gift: true, lunch: true, fee: true, prize: false },
   },
 ];
@@ -279,7 +292,7 @@ export function loadClubMembers(): ClubMember[] {
   } catch (e) {
     console.error('Failed to load club members:', e);
   }
-  return SAMPLE_CLUB_MEMBERS;
+  return HANWOOLIM_CLUB_MEMBERS;
 }
 
 export function saveClubMembers(members: ClubMember[]): void {
@@ -302,17 +315,17 @@ export function loadSyncHistory(): SyncHistoryEntry[] {
 
 export function saveSyncHistory(history: SyncHistoryEntry[]): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.SYNC_HISTORY, JSON.stringify(history.slice(0, 30)));
+    localStorage.setItem(STORAGE_KEYS.SYNC_HISTORY, JSON.stringify(history.slice(-50)));
   } catch (e) {
     console.error('Failed to save sync history:', e);
   }
 }
 
 /**
- * Parses raw text copied from KakaoTalk poll / Excel / memo into structured participants.
- * Handles formats like:
+ * Smart Roster Parser
+ * Converts various text formats into structured Participant objects:
  * - "1. 홍길동(금배) 010-1234-5678"
- * - "김철수, 이영희, 박민수"
+ * - "홍길동, 김철수, 박영희"
  * - "홍길동 / 은배 / 1코트"
  * - Tab-separated lines from spreadsheets
  */
@@ -323,92 +336,95 @@ export function parsePastedRoster(rawText: string, membersMaster: ClubMember[] =
   const lines = rawText
     .split(/[\r\n]+/)
     .map((l) => l.trim())
-    .filter((l) => l.length > 0);
+    .filter(Boolean);
 
-  const parsedList: Participant[] = [];
-  const seenNames = new Set<string>();
-
-  // Helper: check if a chunk is a division
-  const detectDivision = (str: string): string => {
-    if (/금배|골드|gold/i.test(str)) return '금배부';
-    if (/은배|실버|silver/i.test(str)) return '은배부';
-    if (/동배|브론즈|bronze/i.test(str)) return '동배부';
-    if (/신인|루키|비기너|입문/i.test(str)) return '신인부';
-    if (/마스터|베테랑|오픈/i.test(str)) return '마스터즈';
-    return '일반';
-  };
-
-  // Helper: extract phone
-  const detectPhone = (str: string): string | undefined => {
-    const match = str.match(/01[016789][-\s]?\d{3,4}[-\s]?\d{4}/);
-    return match ? match[0].replace(/\s+/g, '') : undefined;
-  };
+  const results: Participant[] = [];
 
   for (const line of lines) {
-    // If line has multiple names separated by comma or bullet
-    const subItems = line.includes(',') ? line.split(',') : [line];
-
-    for (let sub of subItems) {
-      sub = sub.trim();
-      if (!sub) continue;
-
-      // Strip leading sequence numbers like "1. ", "1) ", "① ", "[1] "
-      sub = sub.replace(/^(\d+[\.\)]|\[\d+\]|[\u2460-\u2473]|\-|\*)\s*/, '');
-
-      // Check if there is division inside parentheses: "홍길동(은배)"
-      let division = '일반';
-      const parenMatch = sub.match(/\(([^)]+)\)/);
-      if (parenMatch) {
-        division = detectDivision(parenMatch[1]);
-        sub = sub.replace(/\([^)]+\)/, '').trim();
-      }
-
-      // Check for phone number
-      const phone = detectPhone(sub);
-      if (phone) {
-        sub = sub.replace(phone, '').trim();
-      }
-
-      // Split by slash, space, or tab
-      const tokens = sub.split(/[\/\t\s]+/).filter(Boolean);
-      if (tokens.length === 0) continue;
-
-      const name = tokens[0].replace(/[^a-zA-Z가-힣0-9]/g, '');
-      if (!name || name.length < 2) continue;
-
-      // Extract division from other tokens if not found in paren
-      if (division === '일반' && tokens.length > 1) {
-        for (let i = 1; i < tokens.length; i++) {
-          const div = detectDivision(tokens[i]);
-          if (div !== '일반') {
-            division = div;
-            break;
-          }
+    // Check if line contains multiple comma-separated names
+    if (line.includes(',') && !line.includes('010-')) {
+      const names = line.split(',').map((n) => n.trim()).filter(Boolean);
+      for (const n of names) {
+        const cleanName = n.replace(/^[\d\.\-\)\s]+/, '').trim();
+        if (cleanName) {
+          const matched = masterList.find((m) => m && m.name === cleanName);
+          results.push({
+            id: `p-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+            name: cleanName,
+            division: matched?.division || '일반',
+            phone: matched?.phone || '',
+            checked: false,
+            checkedAt: null,
+            items: {},
+          });
         }
       }
+      continue;
+    }
 
+    // Process single line
+    let remaining = line;
+
+    // 1. Strip leading numbering like "1.", "1)", "- "
+    remaining = remaining.replace(/^[\d]+[\.\)\-\:\s]+/, '').trim();
+    remaining = remaining.replace(/^[-*•]\s+/, '').trim();
+
+    // 2. Extract phone number (e.g., 010-1234-5678 or 01012345678)
+    let phone = '';
+    const phoneMatch = remaining.match(/(01[0-9]-?\d{3,4}-?\d{4})/);
+    if (phoneMatch) {
+      phone = phoneMatch[1].replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3');
+      remaining = remaining.replace(phoneMatch[0], '').trim();
+    }
+
+    // 3. Extract court or group (e.g., "1코트", "A조", "코트1")
+    let group = '';
+    const groupMatch = remaining.match(/(\d+코트|[A-Za-z]조|코트\d+)/);
+    if (groupMatch) {
+      group = groupMatch[1];
+      remaining = remaining.replace(groupMatch[0], '').trim();
+    }
+
+    // 4. Extract division (e.g., "(금배)", "(금배부)", "[은배]", "동배", "신인", "마스터즈")
+    let division: any = '일반';
+    const divMatch = remaining.match(/[\(\[\{]?(금배부?|은배부?|동배부?|신인부?|마스터즈?|게스트|일반)[\)\]\}]?/);
+    if (divMatch) {
+      const rawDiv = divMatch[1];
+      if (rawDiv.startsWith('금')) division = '금배부';
+      else if (rawDiv.startsWith('은')) division = '은배부';
+      else if (rawDiv.startsWith('동')) division = '동배부';
+      else if (rawDiv.startsWith('신인')) division = '신인부';
+      else if (rawDiv.startsWith('마스터')) division = '마스터즈';
+      else if (rawDiv.startsWith('게스트')) division = '게스트';
+      else division = '일반';
+
+      remaining = remaining.replace(divMatch[0], '').trim();
+    }
+
+    // 5. Clean up name
+    // Strip separators like '/', '|', etc.
+    remaining = remaining.replace(/[\/\|\t]/g, ' ').trim();
+    const nameMatch = remaining.match(/^[^\s]+/);
+    const name = nameMatch ? nameMatch[0].trim() : remaining.trim();
+
+    if (name && name.length >= 2) {
       // Look up member from master DB if exists to enrich info
       const matchedMember = masterList.find((m) => m && m.name === name);
       const finalDivision = division !== '일반' ? division : (matchedMember?.division || '일반');
       const finalPhone = phone || matchedMember?.phone || '';
 
-      const key = `${name}_${finalDivision}`;
-      if (!seenNames.has(key)) {
-        seenNames.add(key);
-        parsedList.push({
-          id: `p-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-          name,
-          phone: finalPhone,
-          division: finalDivision,
-          group: tokens.find((t) => /코트|조$/.test(t)) || '',
-          checked: false,
-          checkedAt: null,
-          items: {},
-          notes: '',
-        });
-      }
+      results.push({
+        id: `p-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+        name,
+        division: finalDivision,
+        phone: finalPhone,
+        group,
+        checked: false,
+        checkedAt: null,
+        items: {},
+      });
     }
   }
 
-  return parsedList;
+  return results;
 }
