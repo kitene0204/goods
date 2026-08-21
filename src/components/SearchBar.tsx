@@ -71,11 +71,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           id="search-sort-btn"
           onClick={handleSortToggle}
           className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 text-sm font-semibold"
-          title="정렬 방식 전환"
+          title="정렬 방식 전환 (이름 가나다 오름차순 / 미수령순)"
         >
           <ArrowUpDown className="w-5 h-5 text-slate-600" />
-          <span className="hidden md:inline text-xs text-slate-600 font-bold">
-            {sortOrder === 'default' ? '기본순' : sortOrder === 'name' ? '이름순' : '미수령순'}
+          <span className="hidden md:inline text-xs text-slate-700 font-bold">
+            {sortOrder === 'checked' ? '미수령순' : '가나다순 (오름차순)'}
           </span>
         </button>
 

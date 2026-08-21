@@ -55,7 +55,7 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDivision, setSelectedDivision] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortOrder, setSortOrder] = useState<'default' | 'name' | 'checked'>('default');
+  const [sortOrder, setSortOrder] = useState<'default' | 'name' | 'checked'>('name');
 
   // 3. Modal States
   const [isRosterOpen, setIsRosterOpen] = useState(false);
@@ -150,16 +150,17 @@ export default function App() {
       return true;
     });
 
-    // Apply sorting
-    if (sortOrder === 'name') {
-      return [...list].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-    }
+    // Apply sorting - 항상 가나다 오름차순(ㄱ->ㅎ) 기본 적용
     if (sortOrder === 'checked') {
-      // Unchecked first
-      return [...list].sort((a, b) => (a.checked === b.checked ? 0 : a.checked ? 1 : -1));
+      // Unchecked first, within status groups sorted alphabetically ascending
+      return [...list].sort((a, b) => {
+        if (a.checked !== b.checked) return a.checked ? 1 : -1;
+        return (a.name || '').localeCompare(b.name || '', 'ko');
+      });
     }
 
-    return list;
+    // Default & 'name': 항상 이름 가나다 오름차순 (ㄱ->ㅎ)
+    return [...list].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
   }, [participants, activeFilter, selectedDivision, searchTerm, sortOrder]);
 
   // Handlers for Participant Actions with automatic cloud broadcast

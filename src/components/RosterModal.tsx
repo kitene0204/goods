@@ -85,10 +85,17 @@ export const RosterModal: React.FC<RosterModalProps> = ({
   const [saveToClubDb, setSaveToClubDb] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  // Parsed preview for Tab 1
+  // Parsed preview for Tab 1 (항상 이름 오름차순 정렬)
   const parsedPreview = useMemo(() => {
-    return parsePastedRoster(pasteText, safeClubMembers);
+    return parsePastedRoster(pasteText, safeClubMembers).sort((a, b) =>
+      (a.name || '').localeCompare(b.name || '', 'ko')
+    );
   }, [pasteText, safeClubMembers]);
+
+  // Tab 2 Club DB Sorted List (항상 이름 오름차순 정렬)
+  const sortedClubMembers = useMemo(() => {
+    return [...safeClubMembers].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+  }, [safeClubMembers]);
 
   if (!isOpen) return null;
 
@@ -99,13 +106,17 @@ export const RosterModal: React.FC<RosterModalProps> = ({
     }
 
     if (replaceMode === 'replace') {
-      onSetParticipants(parsedPreview);
-      onShowToast(`총 ${parsedPreview.length}명의 새로운 대회 참석자 명단이 적용되었습니다!`, 'success');
+      const sorted = [...parsedPreview].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+      onSetParticipants(sorted);
+      onShowToast(`총 ${sorted.length}명의 새로운 대회 참석자 명단이 적용되었습니다!`, 'success');
     } else {
-      // Append mode: merge without duplicate names
+      // Append mode: merge without duplicate names and sort ascending
       const existingNames = new Set(safeParticipants.map((p) => p?.name).filter(Boolean));
       const newItems = parsedPreview.filter((p) => p && !existingNames.has(p.name));
-      onSetParticipants([...safeParticipants, ...newItems]);
+      const merged = [...safeParticipants, ...newItems].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', 'ko')
+      );
+      onSetParticipants(merged);
       onShowToast(`${newItems.length}명이 기존 명단에 추가되었습니다!`, 'success');
     }
     setPasteText('');
@@ -119,20 +130,22 @@ export const RosterModal: React.FC<RosterModalProps> = ({
       return;
     }
 
-    const newParticipants: Participant[] = selectedMembers.map((m) => {
-      const existing = safeParticipants.find((p) => p && p.name === m.name);
-      return {
-        id: existing?.id || `p-${Date.now()}-${m.id}`,
-        name: m.name || '무명',
-        phone: m.phone || '',
-        division: m.division || '일반',
-        group: existing?.group || '',
-        checked: existing?.checked || false,
-        checkedAt: existing?.checkedAt || null,
-        items: existing?.items || {},
-        notes: existing?.notes || '',
-      };
-    });
+    const newParticipants: Participant[] = selectedMembers
+      .map((m) => {
+        const existing = safeParticipants.find((p) => p && p.name === m.name);
+        return {
+          id: existing?.id || `p-${Date.now()}-${m.id}`,
+          name: m.name || '무명',
+          phone: m.phone || '',
+          division: m.division || '일반',
+          group: existing?.group || '',
+          checked: existing?.checked || false,
+          checkedAt: existing?.checkedAt || null,
+          items: existing?.items || {},
+          notes: existing?.notes || '',
+        };
+      })
+      .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
 
     onSetParticipants(newParticipants);
     onShowToast(`클럽 회원 ${newParticipants.length}명이 대회 명단으로 등록되었습니다.`, 'success');
@@ -222,7 +235,10 @@ export const RosterModal: React.FC<RosterModalProps> = ({
         phone: newP.phone,
         division: newP.division,
       };
-      onUpdateClubMembers([...safeClubMembers, newMember]);
+      const updated = [...safeClubMembers, newMember].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', 'ko')
+      );
+      onUpdateClubMembers(updated);
       onShowToast(`${newP.name} 님이 대회 명단 및 클럽 회원 DB에 추가되었습니다!`, 'success');
     } else {
       onShowToast(`${newP.name} 님이 대회 명단에 추가되었습니다!`, 'success');
@@ -530,7 +546,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
               ) : (
                 /* Members List with checkboxes and individual delete buttons */
                 <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
-                  {safeClubMembers.map((member) => {
+                  {sortedClubMembers.map((member) => {
                     if (!member || !member.id) return null;
                     const isSelected = selectedMemberIds.has(member.id);
                     return (

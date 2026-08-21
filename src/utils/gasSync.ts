@@ -209,15 +209,19 @@ export async function syncToGoogleSheets(
     throw new Error('올바른 구글 앱스 스크립트(GAS) Web App URL을 입력해주세요.');
   }
 
+  const sortedParticipants = [...participants].sort((a, b) =>
+    (a.name || '').localeCompare(b.name || '', 'ko')
+  );
+
   const payload = {
     eventTitle: eventConfig.title,
     date: eventConfig.date,
     location: eventConfig.location,
     clubName: eventConfig.clubName,
     syncedAt: new Date().toISOString(),
-    totalCount: participants.length,
-    checkedCount: participants.filter((p) => p.checked).length,
-    participants: participants.map((p) => ({
+    totalCount: sortedParticipants.length,
+    checkedCount: sortedParticipants.filter((p) => p.checked).length,
+    participants: sortedParticipants.map((p) => ({
       id: p.id,
       name: p.name,
       division: p.division,
@@ -282,6 +286,10 @@ export async function syncToGoogleSheets(
  * Generates and downloads a CSV file with UTF-8 BOM for Microsoft Excel compatibility
  */
 export function exportToExcelCsv(eventConfig: EventConfig, participants: Participant[]): void {
+  const sortedParticipants = [...participants].sort((a, b) =>
+    (a.name || '').localeCompare(b.name || '', 'ko')
+  );
+
   const headers = [
     '순번',
     '이름',
@@ -296,7 +304,7 @@ export function exportToExcelCsv(eventConfig: EventConfig, participants: Partici
     '메모',
   ];
 
-  const rows = participants.map((p, idx) => {
+  const rows = sortedParticipants.map((p, idx) => {
     const itemDetails = Object.entries(p.items || {})
       .filter(([_, v]) => v)
       .map(([k]) => k)

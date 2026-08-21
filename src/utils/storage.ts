@@ -29,7 +29,7 @@ export const INITIAL_EVENT_CONFIG: EventConfig = {
   fontSize: 'normal',
 };
 
-// 한울림 테니스클럽 전체 회원 DB (중복 없이 정돈된 73명)
+// 한울림 테니스클럽 전체 회원 DB (가나다 오름차순 정렬 73명)
 export const HANWOOLIM_CLUB_MEMBERS: ClubMember[] = [
   { id: 'm-1', name: '강명규', phone: '', division: '일반', memberNumber: '001' },
   { id: 'm-2', name: '강석원', phone: '', division: '일반', memberNumber: '002' },
@@ -48,67 +48,67 @@ export const HANWOOLIM_CLUB_MEMBERS: ClubMember[] = [
   { id: 'm-15', name: '김준동', phone: '', division: '일반', memberNumber: '015' },
   { id: 'm-16', name: '김진규', phone: '', division: '일반', memberNumber: '016' },
   { id: 'm-17', name: '김태균', phone: '', division: '일반', memberNumber: '017' },
-  { id: 'm-18', name: '김한진', phone: '', division: '일반', memberNumber: '018' },
-  { id: 'm-19', name: '김현우', phone: '', division: '일반', memberNumber: '019' },
-  { id: 'm-20', name: '문범준', phone: '', division: '일반', memberNumber: '020' },
-  { id: 'm-21', name: '문현덕', phone: '', division: '일반', memberNumber: '021' },
-  { id: 'm-22', name: '박공래', phone: '', division: '일반', memberNumber: '022' },
-  { id: 'm-23', name: '박광전', phone: '', division: '일반', memberNumber: '023' },
-  { id: 'm-24', name: '박력', phone: '', division: '일반', memberNumber: '024' },
-  { id: 'm-25', name: '박의경', phone: '', division: '일반', memberNumber: '025' },
-  { id: 'm-26', name: '박정태', phone: '', division: '일반', memberNumber: '026' },
-  { id: 'm-27', name: '배동연', phone: '', division: '일반', memberNumber: '027' },
-  { id: 'm-28', name: '배정민', phone: '', division: '일반', memberNumber: '028' },
-  { id: 'm-29', name: '배지혁', phone: '', division: '일반', memberNumber: '029' },
-  { id: 'm-30', name: '서영진', phone: '', division: '일반', memberNumber: '030' },
-  { id: 'm-31', name: '서예찬', phone: '', division: '일반', memberNumber: '031' },
-  { id: 'm-32', name: '서재원', phone: '', division: '일반', memberNumber: '032' },
-  { id: 'm-33', name: '석영수', phone: '', division: '일반', memberNumber: '033' },
-  { id: 'm-34', name: '송인한', phone: '', division: '일반', memberNumber: '034' },
-  { id: 'm-35', name: '송준민', phone: '', division: '일반', memberNumber: '035' },
-  { id: 'm-36', name: '신민철', phone: '', division: '일반', memberNumber: '036' },
-  { id: 'm-37', name: '신성화', phone: '', division: '일반', memberNumber: '037' },
-  { id: 'm-38', name: '신해련', phone: '', division: '일반', memberNumber: '038' },
-  { id: 'm-39', name: '염규생', phone: '', division: '일반', memberNumber: '039' },
-  { id: 'm-40', name: '오승찬', phone: '', division: '일반', memberNumber: '040' },
-  { id: 'm-41', name: '온재승', phone: '', division: '일반', memberNumber: '041' },
-  { id: 'm-42', name: '유경일', phone: '', division: '일반', memberNumber: '042' },
-  { id: 'm-43', name: '윤찬솔', phone: '', division: '일반', memberNumber: '043' },
-  { id: 'm-44', name: '은희광', phone: '', division: '일반', memberNumber: '044' },
-  { id: 'm-45', name: '이경훈', phone: '', division: '일반', memberNumber: '045' },
-  { id: 'm-46', name: '이계현', phone: '', division: '일반', memberNumber: '046' },
-  { id: 'm-47', name: '이병훈', phone: '', division: '일반', memberNumber: '047' },
-  { id: 'm-48', name: '이성훈', phone: '', division: '일반', memberNumber: '048' },
-  { id: 'm-49', name: '이종선', phone: '', division: '일반', memberNumber: '049' },
-  { id: 'm-50', name: '이창민', phone: '', division: '일반', memberNumber: '050' },
-  { id: 'm-51', name: '이충효', phone: '', division: '일반', memberNumber: '051' },
-  { id: 'm-52', name: '임강문', phone: '', division: '일반', memberNumber: '052' },
-  { id: 'm-53', name: '임상섭', phone: '', division: '일반', memberNumber: '053' },
-  { id: 'm-54', name: '임태승', phone: '', division: '일반', memberNumber: '054' },
-  { id: 'm-55', name: '장종석', phone: '', division: '일반', memberNumber: '055' },
-  { id: 'm-56', name: '전만국', phone: '', division: '일반', memberNumber: '056' },
-  { id: 'm-57', name: '전훈', phone: '', division: '일반', memberNumber: '057' },
-  { id: 'm-58', name: '정재용', phone: '', division: '일반', memberNumber: '058' },
-  { id: 'm-59', name: '정진안', phone: '', division: '일반', memberNumber: '059' },
-  { id: 'm-60', name: '정현욱', phone: '', division: '일반', memberNumber: '060' },
-  { id: 'm-61', name: '정홍모', phone: '', division: '일반', memberNumber: '061' },
-  { id: 'm-62', name: '조우영', phone: '', division: '일반', memberNumber: '062' },
-  { id: 'm-63', name: '천승진', phone: '', division: '일반', memberNumber: '063' },
-  { id: 'm-64', name: '최규성', phone: '', division: '일반', memberNumber: '064' },
-  { id: 'm-65', name: '최수민', phone: '', division: '일반', memberNumber: '065' },
-  { id: 'm-66', name: '편보성', phone: '', division: '일반', memberNumber: '066' },
-  { id: 'm-67', name: '현대삼', phone: '', division: '일반', memberNumber: '067' },
-  { id: 'm-68', name: '홍성완', phone: '', division: '일반', memberNumber: '068' },
-  { id: 'm-69', name: '서재원w', phone: '', division: '일반', memberNumber: '069' },
-  { id: 'm-70', name: '한언석', phone: '', division: '일반', memberNumber: '070' },
-  { id: 'm-71', name: '유봉수', phone: '', division: '일반', memberNumber: '071' },
-  { id: 'm-72', name: '이정식', phone: '', division: '일반', memberNumber: '072' },
-  { id: 'm-73', name: '김한준', phone: '', division: '일반', memberNumber: '073' },
+  { id: 'm-18', name: '김한준', phone: '', division: '일반', memberNumber: '018' },
+  { id: 'm-19', name: '김한진', phone: '', division: '일반', memberNumber: '019' },
+  { id: 'm-20', name: '김현우', phone: '', division: '일반', memberNumber: '020' },
+  { id: 'm-21', name: '문범준', phone: '', division: '일반', memberNumber: '021' },
+  { id: 'm-22', name: '문현덕', phone: '', division: '일반', memberNumber: '022' },
+  { id: 'm-23', name: '박공래', phone: '', division: '일반', memberNumber: '023' },
+  { id: 'm-24', name: '박광전', phone: '', division: '일반', memberNumber: '024' },
+  { id: 'm-25', name: '박력', phone: '', division: '일반', memberNumber: '025' },
+  { id: 'm-26', name: '박의경', phone: '', division: '일반', memberNumber: '026' },
+  { id: 'm-27', name: '박정태', phone: '', division: '일반', memberNumber: '027' },
+  { id: 'm-28', name: '배동연', phone: '', division: '일반', memberNumber: '028' },
+  { id: 'm-29', name: '배정민', phone: '', division: '일반', memberNumber: '029' },
+  { id: 'm-30', name: '배지혁', phone: '', division: '일반', memberNumber: '030' },
+  { id: 'm-31', name: '서영진', phone: '', division: '일반', memberNumber: '031' },
+  { id: 'm-32', name: '서예찬', phone: '', division: '일반', memberNumber: '032' },
+  { id: 'm-33', name: '서재원', phone: '', division: '일반', memberNumber: '033' },
+  { id: 'm-34', name: '서재원w', phone: '', division: '일반', memberNumber: '034' },
+  { id: 'm-35', name: '석영수', phone: '', division: '일반', memberNumber: '035' },
+  { id: 'm-36', name: '송인한', phone: '', division: '일반', memberNumber: '036' },
+  { id: 'm-37', name: '송준민', phone: '', division: '일반', memberNumber: '037' },
+  { id: 'm-38', name: '신민철', phone: '', division: '일반', memberNumber: '038' },
+  { id: 'm-39', name: '신성화', phone: '', division: '일반', memberNumber: '039' },
+  { id: 'm-40', name: '신해련', phone: '', division: '일반', memberNumber: '040' },
+  { id: 'm-41', name: '염규생', phone: '', division: '일반', memberNumber: '041' },
+  { id: 'm-42', name: '오승찬', phone: '', division: '일반', memberNumber: '042' },
+  { id: 'm-43', name: '온재승', phone: '', division: '일반', memberNumber: '043' },
+  { id: 'm-44', name: '유경일', phone: '', division: '일반', memberNumber: '044' },
+  { id: 'm-45', name: '유봉수', phone: '', division: '일반', memberNumber: '045' },
+  { id: 'm-46', name: '윤찬솔', phone: '', division: '일반', memberNumber: '046' },
+  { id: 'm-47', name: '은희광', phone: '', division: '일반', memberNumber: '047' },
+  { id: 'm-48', name: '이경훈', phone: '', division: '일반', memberNumber: '048' },
+  { id: 'm-49', name: '이계현', phone: '', division: '일반', memberNumber: '049' },
+  { id: 'm-50', name: '이병훈', phone: '', division: '일반', memberNumber: '050' },
+  { id: 'm-51', name: '이성훈', phone: '', division: '일반', memberNumber: '051' },
+  { id: 'm-52', name: '이정식', phone: '', division: '일반', memberNumber: '052' },
+  { id: 'm-53', name: '이종선', phone: '', division: '일반', memberNumber: '053' },
+  { id: 'm-54', name: '이창민', phone: '', division: '일반', memberNumber: '054' },
+  { id: 'm-55', name: '이충효', phone: '', division: '일반', memberNumber: '055' },
+  { id: 'm-56', name: '임강문', phone: '', division: '일반', memberNumber: '056' },
+  { id: 'm-57', name: '임상섭', phone: '', division: '일반', memberNumber: '057' },
+  { id: 'm-58', name: '임태승', phone: '', division: '일반', memberNumber: '058' },
+  { id: 'm-59', name: '장종석', phone: '', division: '일반', memberNumber: '059' },
+  { id: 'm-60', name: '전만국', phone: '', division: '일반', memberNumber: '060' },
+  { id: 'm-61', name: '전훈', phone: '', division: '일반', memberNumber: '061' },
+  { id: 'm-62', name: '정재용', phone: '', division: '일반', memberNumber: '062' },
+  { id: 'm-63', name: '정진안', phone: '', division: '일반', memberNumber: '063' },
+  { id: 'm-64', name: '정현욱', phone: '', division: '일반', memberNumber: '064' },
+  { id: 'm-65', name: '정홍모', phone: '', division: '일반', memberNumber: '065' },
+  { id: 'm-66', name: '조우영', phone: '', division: '일반', memberNumber: '066' },
+  { id: 'm-67', name: '천승진', phone: '', division: '일반', memberNumber: '067' },
+  { id: 'm-68', name: '최규성', phone: '', division: '일반', memberNumber: '068' },
+  { id: 'm-69', name: '최수민', phone: '', division: '일반', memberNumber: '069' },
+  { id: 'm-70', name: '편보성', phone: '', division: '일반', memberNumber: '070' },
+  { id: 'm-71', name: '한언석', phone: '', division: '일반', memberNumber: '071' },
+  { id: 'm-72', name: '현대삼', phone: '', division: '일반', memberNumber: '072' },
+  { id: 'm-73', name: '홍성완', phone: '', division: '일반', memberNumber: '073' },
 ];
 
 export const SAMPLE_CLUB_MEMBERS = HANWOOLIM_CLUB_MEMBERS;
 
-// 한울림 회원 명부 기반 기본 대회 참석자 샘플
+// 한울림 회원 명부 기반 기본 대회 참석자 샘플 (가나다 오름차순)
 export const INITIAL_PARTICIPANTS: Participant[] = [
   {
     id: 'p-1',
@@ -266,17 +266,22 @@ export function loadParticipants(): Participant[] {
     const saved = localStorage.getItem(STORAGE_KEYS.PARTICIPANTS);
     if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return [...parsed].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+      }
     }
   } catch (e) {
     console.error('Failed to load participants:', e);
   }
-  return INITIAL_PARTICIPANTS;
+  return [...INITIAL_PARTICIPANTS].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
 }
 
 export function saveParticipants(participants: Participant[]): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.PARTICIPANTS, JSON.stringify(participants || []));
+    const sorted = Array.isArray(participants)
+      ? [...participants].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'))
+      : [];
+    localStorage.setItem(STORAGE_KEYS.PARTICIPANTS, JSON.stringify(sorted));
   } catch (e) {
     console.error('Failed to save participants:', e);
   }
@@ -287,17 +292,22 @@ export function loadClubMembers(): ClubMember[] {
     const saved = localStorage.getItem(STORAGE_KEYS.CLUB_MEMBERS);
     if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        return [...parsed].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+      }
     }
   } catch (e) {
     console.error('Failed to load club members:', e);
   }
-  return HANWOOLIM_CLUB_MEMBERS;
+  return [...HANWOOLIM_CLUB_MEMBERS].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
 }
 
 export function saveClubMembers(members: ClubMember[]): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.CLUB_MEMBERS, JSON.stringify(members || []));
+    const sorted = Array.isArray(members)
+      ? [...members].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'))
+      : [];
+    localStorage.setItem(STORAGE_KEYS.CLUB_MEMBERS, JSON.stringify(sorted));
   } catch (e) {
     console.error('Failed to save club members:', e);
   }
@@ -426,5 +436,6 @@ export function parsePastedRoster(rawText: string, membersMaster: ClubMember[] =
     }
   }
 
-  return results;
+  // 항상 이름 오름차순 (ㄱ->ㅎ) 정렬하여 반환
+  return results.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
 }
