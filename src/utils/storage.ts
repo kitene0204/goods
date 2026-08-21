@@ -11,22 +11,17 @@ export const DEFAULT_GAS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfyc
 
 export const INITIAL_EVENT_CONFIG: EventConfig = {
   id: 'event-2026-08',
-  title: '2026년 한울림 테니스클럽 정기 월례대회',
+  title: '2026년 한울림',
   clubName: '한울림 테니스클럽',
   date: '2026-08-16',
-  location: '올림픽공원 테니스장 1~4번 코트',
-  primaryItemName: '참가 웰컴 패키지 (테니스 타월 & 댐프너)',
-  items: [
-    { id: 'gift', name: '참가 기념품', badgeColor: 'bg-emerald-500' },
-    { id: 'lunch', name: '도시락/음료', badgeColor: 'bg-amber-500' },
-    { id: 'fee', name: '참가비 납부', badgeColor: 'bg-blue-500' },
-    { id: 'prize', name: '경품/추첨권', badgeColor: 'bg-purple-500' },
-  ],
+  location: '완산체련공원',
+  primaryItemName: '한울림 단체티',
+  items: [],
   multiItemMode: false, // Default is simple fast single-tap mode
   gasWebhookUrl: DEFAULT_GAS_WEBHOOK_URL,
   googleSheetUrl: '',
   theme: 'outdoor-court',
-  fontSize: 'normal',
+  fontSize: 'xlarge',
 };
 
 // 한울림 테니스클럽 전체 회원 DB (가나다 오름차순 정렬 73명)
@@ -108,7 +103,7 @@ export const HANWOOLIM_CLUB_MEMBERS: ClubMember[] = [
 
 export const SAMPLE_CLUB_MEMBERS = HANWOOLIM_CLUB_MEMBERS;
 
-// 한울림 회원 명부 기반 기본 대회 참석자 샘플 (가나다 오름차순)
+// 한울림 회원 명부 기반 기본 대회 참석자 (가나다 오름차순, 추가 항목은 사용자 지정 전까지 비워둠)
 export const INITIAL_PARTICIPANTS: Participant[] = [
   {
     id: 'p-1',
@@ -116,10 +111,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     phone: '',
     division: '일반',
     group: '1코트',
-    checked: true,
-    checkedAt: '08:42',
-    items: { gift: true, lunch: true, fee: true, prize: false },
-    notes: '참가비 현금 납부 완료',
+    checked: false,
+    checkedAt: null,
+    items: {},
+    notes: '',
   },
   {
     id: 'p-2',
@@ -127,9 +122,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     phone: '',
     division: '일반',
     group: '1코트',
-    checked: true,
-    checkedAt: '08:50',
-    items: { gift: true, lunch: false, fee: true, prize: false },
+    checked: false,
+    checkedAt: null,
+    items: {},
+    notes: '',
   },
   {
     id: 'p-3',
@@ -139,8 +135,8 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     group: '2코트',
     checked: false,
     checkedAt: null,
-    items: { gift: false, lunch: false, fee: true, prize: false },
-    notes: '9시 30분 도착 예정',
+    items: {},
+    notes: '',
   },
   {
     id: 'p-4',
@@ -148,10 +144,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     phone: '',
     division: '일반',
     group: '2코트',
-    checked: true,
-    checkedAt: '09:05',
-    items: { gift: true, lunch: true, fee: true, prize: true },
-    isProxy: false,
+    checked: false,
+    checkedAt: null,
+    items: {},
+    notes: '',
   },
   {
     id: 'p-5',
@@ -161,7 +157,8 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     group: '3코트',
     checked: false,
     checkedAt: null,
-    items: { gift: false, lunch: false, fee: false, prize: false },
+    items: {},
+    notes: '',
   },
   {
     id: 'p-6',
@@ -169,9 +166,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     phone: '',
     division: '일반',
     group: '3코트',
-    checked: true,
-    checkedAt: '09:12',
-    items: { gift: true, lunch: true, fee: true, prize: false },
+    checked: false,
+    checkedAt: null,
+    items: {},
+    notes: '',
   },
   {
     id: 'p-7',
@@ -179,9 +177,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     phone: '',
     division: '일반',
     group: '4코트',
-    checked: true,
-    checkedAt: '09:15',
-    items: { gift: true, lunch: true, fee: true, prize: false },
+    checked: false,
+    checkedAt: null,
+    items: {},
+    notes: '',
   },
   {
     id: 'p-8',
@@ -191,7 +190,8 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     group: '4코트',
     checked: false,
     checkedAt: null,
-    items: { gift: false, lunch: false, fee: true, prize: false },
+    items: {},
+    notes: '',
   },
   {
     id: 'p-9',
@@ -201,7 +201,8 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     group: '1코트',
     checked: false,
     checkedAt: null,
-    items: { gift: false, lunch: false, fee: true, prize: false },
+    items: {},
+    notes: '',
   },
   {
     id: 'p-10',
@@ -209,9 +210,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     phone: '',
     division: '일반',
     group: '2코트',
-    checked: true,
-    checkedAt: '09:25',
-    items: { gift: true, lunch: false, fee: true, prize: false },
+    checked: false,
+    checkedAt: null,
+    items: {},
+    notes: '',
   },
   {
     id: 'p-11',
@@ -219,9 +221,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     phone: '',
     division: '일반',
     group: '3코트',
-    checked: true,
-    checkedAt: '09:30',
-    items: { gift: true, lunch: true, fee: true, prize: true },
+    checked: false,
+    checkedAt: null,
+    items: {},
+    notes: '',
   },
   {
     id: 'p-12',
@@ -229,9 +232,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     phone: '',
     division: '일반',
     group: '4코트',
-    checked: true,
-    checkedAt: '09:35',
-    items: { gift: true, lunch: true, fee: true, prize: false },
+    checked: false,
+    checkedAt: null,
+    items: {},
+    notes: '',
   },
 ];
 
@@ -241,9 +245,22 @@ export function loadEventConfig(): EventConfig {
     const saved = localStorage.getItem(STORAGE_KEYS.EVENT_CONFIG);
     if (saved) {
       const parsed = JSON.parse(saved);
+      const location = (!parsed.location || parsed.location === '올림픽공원 테니스장 1~4번 코트')
+        ? '완산체련공원'
+        : parsed.location;
+      const primaryItemName = (!parsed.primaryItemName || parsed.primaryItemName === '참가 웰컴 패키지 (테니스 타월 & 댐프너)')
+        ? '한울림 단체티'
+        : parsed.primaryItemName;
+      const title = (!parsed.title || parsed.title === '2026년 한울림 테니스클럽 정기 월례대회')
+        ? '2026년 한울림'
+        : parsed.title;
+
       return {
         ...INITIAL_EVENT_CONFIG,
         ...parsed,
+        title,
+        location,
+        primaryItemName,
         gasWebhookUrl: parsed.gasWebhookUrl || DEFAULT_GAS_WEBHOOK_URL,
       };
     }
@@ -267,7 +284,30 @@ export function loadParticipants(): Participant[] {
     if (saved !== null) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return [...parsed].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+        // Sanitize legacy mock data (gift, lunch, fee) if present from previous samples
+        const cleaned = parsed.map((p: any) => {
+          let items = p.items || {};
+          // Check if items only contain the old default keys
+          const keys = Object.keys(items);
+          const isLegacyDefaultItems =
+            keys.length > 0 && keys.every((k) => ['gift', 'lunch', 'fee', 'prize'].includes(k));
+          if (isLegacyDefaultItems) {
+            items = {};
+          }
+
+          let notes = p.notes || '';
+          if (notes === '참가비 현금 납부 완료' || notes === '9시 30분 도착 예정') {
+            notes = '';
+          }
+
+          return {
+            ...p,
+            items,
+            notes,
+          };
+        });
+
+        return [...cleaned].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
       }
     }
   } catch (e) {

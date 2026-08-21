@@ -48,11 +48,11 @@ function doPost(e) {
     var now = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm:ss");
     
     data.participants.forEach(function(p, idx) {
-      var itemDetails = [];
-      if (p.items) {
-        for (var k in p.items) {
-          if (p.items[k]) itemDetails.push(k);
-        }
+      var itemDetails = "-";
+      if (p.itemsText && p.itemsText !== "-") {
+        itemDetails = p.itemsText;
+      } else if (p.additionalItems && p.additionalItems.length > 0) {
+        itemDetails = p.additionalItems.join(", ");
       }
       
       rows.push([
@@ -63,7 +63,7 @@ function doPost(e) {
         p.checked ? "수령완료" : "미수령",
         p.checkedAt || "",
         p.proxyName || (p.isProxy ? "대리수령" : "-"),
-        itemDetails.join(", ") || "-",
+        itemDetails,
         p.raffleWinnerPrize || "-",
         p.notes || "",
         now
@@ -213,6 +213,18 @@ export async function syncToGoogleSheets(
     (a.name || '').localeCompare(b.name || '', 'ko')
   );
 
+  // Helper to format additional items only if multiItemMode is active
+  const formatAdditionalItems = (p: Participant): string => {
+    if (!eventConfig.multiItemMode || !eventConfig.items || eventConfig.items.length === 0) {
+      return '-';
+    }
+    if (!p.items) return '-';
+    const checkedNames = eventConfig.items
+      .filter((item) => p.items[item.id])
+      .map((item) => item.name);
+    return checkedNames.length > 0 ? checkedNames.join(', ') : '-';
+  };
+
   const payload = {
     eventTitle: eventConfig.title,
     date: eventConfig.date,
@@ -221,19 +233,23 @@ export async function syncToGoogleSheets(
     syncedAt: new Date().toISOString(),
     totalCount: sortedParticipants.length,
     checkedCount: sortedParticipants.filter((p) => p.checked).length,
-    participants: sortedParticipants.map((p) => ({
-      id: p.id,
-      name: p.name,
-      division: p.division,
-      phone: p.phone,
-      checked: p.checked,
-      checkedAt: p.checkedAt,
-      isProxy: p.isProxy,
-      proxyName: p.proxyName,
-      items: p.items,
-      raffleWinnerPrize: p.raffleWinnerPrize,
-      notes: p.notes,
-    })),
+    participants: sortedParticipants.map((p) => {
+      const itemsText = formatAdditionalItems(p);
+      return {
+        id: p.id,
+        name: p.name,
+        division: p.division,
+        phone: p.phone,
+        checked: p.checked,
+        checkedAt: p.checkedAt,
+        isProxy: p.isProxy,
+        proxyName: p.proxyName,
+        itemsText,
+        additionalItems: itemsText === '-' ? [] : [itemsText],
+        raffleWinnerPrize: p.raffleWinnerPrize,
+        notes: p.notes,
+      };
+    }),
   };
 
   try {
@@ -290,6 +306,17 @@ export function exportToExcelCsv(eventConfig: EventConfig, participants: Partici
     (a.name || '').localeCompare(b.name || '', 'ko')
   );
 
+  const formatAdditionalItems = (p: Participant): string => {
+    if (!eventConfig.multiItemMode || !eventConfig.items || eventConfig.items.length === 0) {
+      return '-';
+    }
+    if (!p.items) return '-';
+    const checkedNames = eventConfig.items
+      .filter((item) => p.items[item.id])
+      .map((item) => item.name);
+    return checkedNames.length > 0 ? checkedNames.join(' / ') : '-';
+  };
+
   const headers = [
     '순번',
     '이름',
@@ -305,21 +332,18 @@ export function exportToExcelCsv(eventConfig: EventConfig, participants: Partici
   ];
 
   const rows = sortedParticipants.map((p, idx) => {
-    const itemDetails = Object.entries(p.items || {})
-      .filter(([_, v]) => v)
-      .map(([k]) => k)
-      .join(' / ');
+    const itemDetails = formatAdditionalItems(p);
 
     return [
       idx + 1,
-      `"${p.name.replace(/"/g, '""')}"`,
+      `"${(p.name || '').replace(/"/g, '""')}"`,
       `"${(p.division || '일반').replace(/"/g, '""')}"`,
       `"${(p.phone || '').replace(/"/g, '""')}"`,
       p.checked ? '수령완료' : '미수령',
       `"${p.checkedAt || ''}"`,
       p.isProxy ? '대리수령' : '-',
       `"${(p.proxyName || '').replace(/"/g, '""')}"`,
-      `"${itemDetails || '-'}"`,
+      `"${itemDetails}"`,
       `"${(p.raffleWinnerPrize || '-').replace(/"/g, '""')}"`,
       `"${(p.notes || '').replace(/"/g, '""')}"`,
     ].join(',');
