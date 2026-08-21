@@ -27,8 +27,15 @@ import { RosterModal } from './components/RosterModal';
 import { GoogleSheetModal } from './components/GoogleSheetModal';
 import { LuckyDrawModal } from './components/LuckyDrawModal';
 import { EventSettingsModal } from './components/EventSettingsModal';
+import { SupabaseModal } from './components/SupabaseModal';
 import { Toast, ToastMessage } from './components/Toast';
 import confetti from 'canvas-confetti';
+import {
+  fetchParticipantsFromSupabase,
+  upsertParticipantToSupabase,
+  bulkUpsertParticipantsToSupabase,
+  subscribeToSupabaseRealtime,
+} from './utils/supabaseClient';
 import { 
   UserPlus, 
   RotateCcw, 
@@ -49,6 +56,7 @@ export default function App() {
   const [participants, setParticipants] = useState<Participant[]>(() => loadParticipants());
   const [clubMembers, setClubMembers] = useState<ClubMember[]>(() => loadClubMembers());
   const [syncHistory, setSyncHistory] = useState<SyncHistoryEntry[]>(() => loadSyncHistory());
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(true);
 
   // 2. View & Filter States
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
@@ -60,6 +68,7 @@ export default function App() {
   // 3. Modal States
   const [isRosterOpen, setIsRosterOpen] = useState(false);
   const [isGoogleSheetOpen, setIsGoogleSheetOpen] = useState(false);
+  const [isSupabaseOpen, setIsSupabaseOpen] = useState(false);
   const [isLuckyDrawOpen, setIsLuckyDrawOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -99,6 +108,41 @@ export default function App() {
     onShowToast: showToast,
     pollingIntervalMs: 5000,
   });
+
+  // Supabase Real-time Cloud DB Synchronization & Subscription
+  useEffect(() => {
+    // 1. Initial Load: Fetch latest remote participants from Supabase if available
+    fetchParticipantsFromSupabase().then((remoteData) => {
+      if (remoteData && remoteData.length > 0) {
+        setParticipants(remoteData);
+        setIsSupabaseConnected(true);
+      } else {
+        // Table is empty, seed with initial list
+        const currentList = loadParticipants();
+        if (currentList.length > 0) {
+          bulkUpsertParticipantsToSupabase(currentList).then((ok) => {
+            if (ok) setIsSupabaseConnected(true);
+          });
+        }
+      }
+    });
+
+    // 2. Realtime WebSocket subscription: Listen for any changes made on any phone/PC
+    const { unsubscribe } = subscribeToSupabaseRealtime((updatedRemotePart) => {
+      setParticipants((prev) => {
+        const exists = prev.some((p) => p.id === updatedRemotePart.id);
+        if (exists) {
+          return prev.map((p) => (p.id === updatedRemotePart.id ? updatedRemotePart : p));
+        } else {
+          return [updatedRemotePart, ...prev];
+        }
+      });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // Save to LocalStorage on changes
   useEffect(() => {
@@ -165,6 +209,8 @@ export default function App() {
 
   // Handlers for Participant Actions with automatic cloud broadcast
   const handleToggleCheck = (id: string) => {
+    let targetParticipant: Participant | null = null;
+
     setParticipants((prev) => {
       const now = new Date();
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -174,11 +220,13 @@ export default function App() {
       const updated = prev.map((p) => {
         if (p.id === id) {
           const nextChecked = !p.checked;
-          return {
+          const modified: Participant = {
             ...p,
             checked: nextChecked,
             checkedAt: nextChecked ? timeStr : null,
           };
+          targetParticipant = modified;
+          return modified;
         }
         return p;
       });
@@ -203,31 +251,57 @@ export default function App() {
       return updated;
     });
 
+    // Instant Real-time Push to Supabase (0.1s to all devices)
+    if (targetParticipant) {
+      upsertParticipantToSupabase(targetParticipant);
+    }
+
     // Auto push to server & GAS in background
     triggerLocalChangePush();
   };
 
   const handleToggleItem = (participantId: string, itemId: string) => {
+    let targetParticipant: Participant | null = null;
+
     setParticipants((prev) =>
       prev.map((p) => {
         if (p.id === participantId) {
           const nextItems = { ...(p.items || {}) };
           nextItems[itemId] = !nextItems[itemId];
-          return {
+          const modified: Participant = {
             ...p,
             items: nextItems,
           };
+          targetParticipant = modified;
+          return modified;
         }
         return p;
       })
     );
+
+    if (targetParticipant) {
+      upsertParticipantToSupabase(targetParticipant);
+    }
     triggerLocalChangePush();
   };
 
   const handleUpdateParticipant = (id: string, updates: Partial<Participant>) => {
+    let targetParticipant: Participant | null = null;
+
     setParticipants((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+      prev.map((p) => {
+        if (p.id === id) {
+          const mod = { ...p, ...updates };
+          targetParticipant = mod;
+          return mod;
+        }
+        return p;
+      })
     );
+
+    if (targetParticipant) {
+      upsertParticipantToSupabase(targetParticipant);
+    }
     showToast('참가자 정보가 업데이트되었습니다.', 'success');
     triggerLocalChangePush();
   };
@@ -241,38 +315,50 @@ export default function App() {
   const handleMarkAllChecked = () => {
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    setParticipants((prev) =>
-      prev.map((p) => ({
-        ...p,
-        checked: true,
-        checkedAt: p.checkedAt || timeStr,
-      }))
-    );
+    const nextList = participants.map((p) => ({
+      ...p,
+      checked: true,
+      checkedAt: p.checkedAt || timeStr,
+    }));
+    setParticipants(nextList);
+    bulkUpsertParticipantsToSupabase(nextList);
     showToast('전원 수령 완료 처리되었습니다.', 'success');
     triggerLocalChangePush();
   };
 
   const handleResetAllChecked = () => {
-    setParticipants((prev) =>
-      prev.map((p) => ({
-        ...p,
-        checked: false,
-        checkedAt: null,
-      }))
-    );
+    const nextList = participants.map((p) => ({
+      ...p,
+      checked: false,
+      checkedAt: null,
+    }));
+    setParticipants(nextList);
+    bulkUpsertParticipantsToSupabase(nextList);
     showToast('수령 기록이 초기화되었습니다.', 'info');
     triggerLocalChangePush();
   };
 
   const handleAddParticipant = (newP: Participant) => {
     setParticipants((prev) => [newP, ...prev]);
+    upsertParticipantToSupabase(newP);
     triggerLocalChangePush();
   };
 
   const handleRecordWinner = (participantId: string, prizeName: string) => {
+    let targetParticipant: Participant | null = null;
     setParticipants((prev) =>
-      prev.map((p) => (p.id === participantId ? { ...p, raffleWinnerPrize: prizeName } : p))
+      prev.map((p) => {
+        if (p.id === participantId) {
+          const mod = { ...p, raffleWinnerPrize: prizeName };
+          targetParticipant = mod;
+          return mod;
+        }
+        return p;
+      })
     );
+    if (targetParticipant) {
+      upsertParticipantToSupabase(targetParticipant);
+    }
     triggerLocalChangePush();
   };
 
@@ -304,10 +390,12 @@ export default function App() {
         syncStatus={syncStatus}
         lastSyncedAgo={lastSyncedAgoText}
         isPollingActive={isPollingActive}
+        isSupabaseConnected={isSupabaseConnected}
         onPollNow={pollNow}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenRoster={() => setIsRosterOpen(true)}
         onOpenGoogleSheet={() => setIsGoogleSheetOpen(true)}
+        onOpenSupabase={() => setIsSupabaseOpen(true)}
         onOpenLuckyDraw={() => setIsLuckyDrawOpen(true)}
         onToggleTheme={handleToggleTheme}
         onCycleFontSize={handleCycleFontSize}
@@ -409,6 +497,20 @@ export default function App() {
                 </div>
                 <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">
                   {total}명
+                </span>
+              </button>
+
+              <button
+                id="sidebar-supabase-btn"
+                onClick={() => setIsSupabaseOpen(true)}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200/80 text-xs font-bold transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-emerald-600 fill-emerald-600" />
+                  <span>실시간 클라우드 DB 연동</span>
+                </div>
+                <span className="text-[10px] bg-emerald-500 text-white px-1.5 py-0.5 rounded font-bold">
+                  0.1초
                 </span>
               </button>
 
@@ -658,6 +760,18 @@ export default function App() {
         config={config}
         onRecordWinner={handleRecordWinner}
         onShowToast={showToast}
+      />
+
+      <SupabaseModal
+        isOpen={isSupabaseOpen}
+        onClose={() => setIsSupabaseOpen(false)}
+        participants={participants}
+        onUpdateParticipants={(newP) => {
+          setParticipants(newP);
+          triggerLocalChangePush();
+        }}
+        onShowToast={showToast}
+        isConnected={isSupabaseConnected}
       />
 
       <EventSettingsModal

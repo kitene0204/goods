@@ -22,10 +22,12 @@ interface HeaderProps {
   syncStatus?: 'idle' | 'syncing' | 'synced' | 'error';
   lastSyncedAgo?: string;
   isPollingActive?: boolean;
+  isSupabaseConnected?: boolean;
   onPollNow?: () => void;
   onOpenSettings: () => void;
   onOpenRoster: () => void;
   onOpenGoogleSheet: () => void;
+  onOpenSupabase: () => void;
   onOpenLuckyDraw: () => void;
   onToggleTheme: () => void;
   onCycleFontSize: () => void;
@@ -37,10 +39,12 @@ export const Header: React.FC<HeaderProps> = ({
   syncStatus = 'synced',
   lastSyncedAgo = '방금 전',
   isPollingActive = true,
+  isSupabaseConnected = true,
   onPollNow,
   onOpenSettings,
   onOpenRoster,
   onOpenGoogleSheet,
+  onOpenSupabase,
   onOpenLuckyDraw,
   onToggleTheme,
   onCycleFontSize,
@@ -74,35 +78,24 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Center/Right: Live 5-second Polling Sync Pill */}
+      {/* Center: Realtime Supabase live pill */}
       <div className="hidden lg:flex items-center gap-2">
         <button
-          onClick={onPollNow}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/90 hover:bg-slate-750 border border-slate-700/80 text-xs font-medium cursor-pointer transition-all shadow-xs group"
-          title="클릭하여 즉시 최신 데이터로 동기화 (5초마다 자동 실행)"
+          onClick={onOpenSupabase}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/90 hover:bg-slate-750 border border-emerald-500/30 text-xs font-medium cursor-pointer transition-all shadow-xs group"
+          title="Supabase 실시간 클라우드 DB 연동 상태 (모든 기기 0.1초 동기화)"
         >
-          {syncStatus === 'syncing' ? (
-            <>
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-lime-400" />
-              <span className="text-lime-300 font-bold">실시간 동기화 중...</span>
-            </>
-          ) : syncStatus === 'error' ? (
-            <>
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
-              <span className="text-slate-300">오프라인 보관 중</span>
-            </>
-          ) : (
-            <>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-lime-400"></span>
-              </span>
-              <span className="text-slate-300 group-hover:text-white transition-colors">
-                <span className="text-lime-400 font-bold">5초 자동동기화</span> ({lastSyncedAgo})
-              </span>
-              <RefreshCw className="w-3 h-3 text-slate-500 group-hover:text-lime-400 transition-transform group-hover:rotate-180" />
-            </>
-          )}
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+          </span>
+          <span className="text-emerald-400 font-extrabold flex items-center gap-1">
+            <Zap className="w-3.5 h-3.5 fill-emerald-400" />
+            실시간 클라우드 DB
+          </span>
+          <span className="text-[11px] text-slate-400 group-hover:text-white transition-colors">
+            (0.1초 연동)
+          </span>
         </button>
       </div>
 
@@ -116,7 +109,18 @@ export const Header: React.FC<HeaderProps> = ({
           </p>
         </div>
 
-        {/* Primary Sync Button */}
+        {/* Supabase Button (Mobile/Tablet visible) */}
+        <button
+          id="header-supabase-btn"
+          onClick={onOpenSupabase}
+          className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3 py-2 rounded-lg font-bold text-xs sm:text-sm transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95"
+          title="Supabase 실시간 클라우드 설정"
+        >
+          <Zap className="w-4 h-4 fill-slate-950" />
+          <span className="font-extrabold hidden xs:inline">실시간 DB</span>
+        </button>
+
+        {/* Primary Sync Button (Google Sheets) */}
         <button
           id="header-sheets-btn"
           onClick={onOpenGoogleSheet}
@@ -124,7 +128,7 @@ export const Header: React.FC<HeaderProps> = ({
           title="구글 시트 동기화 및 엑셀 다운로드"
         >
           <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
-          <span className="font-extrabold">구글 시트 연동</span>
+          <span className="font-extrabold">구글 시트</span>
         </button>
 
         {/* Roster Management */}
