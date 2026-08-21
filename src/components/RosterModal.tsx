@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Participant, ClubMember, TournamentDivision } from '../types';
 import { 
   X, 
@@ -29,8 +29,8 @@ interface RosterModalProps {
 export const RosterModal: React.FC<RosterModalProps> = ({
   isOpen,
   onClose,
-  participants,
-  clubMembers,
+  participants = [],
+  clubMembers = [],
   onSetParticipants,
   onAddParticipant,
   onUpdateClubMembers,
@@ -38,15 +38,44 @@ export const RosterModal: React.FC<RosterModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'paste' | 'clubDb' | 'manual'>('paste');
   
+  // Safe array guards
+  const safeClubMembers = useMemo(() => {
+    return Array.isArray(clubMembers) ? clubMembers.filter(Boolean) : [];
+  }, [clubMembers]);
+
+  const safeParticipants = useMemo(() => {
+    return Array.isArray(participants) ? participants.filter(Boolean) : [];
+  }, [participants]);
+
   // Tab 1: Paste text state
   const [pasteText, setPasteText] = useState('');
   const [replaceMode, setReplaceMode] = useState<'replace' | 'append'>('replace');
 
   // Tab 2: Club Member Selection state
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(() => {
-    const existingNames = new Set(participants.map((p) => p.name));
-    return new Set(clubMembers.filter((m) => existingNames.has(m.name)).map((m) => m.id));
+    const pList = Array.isArray(participants) ? participants.filter(Boolean) : [];
+    const cList = Array.isArray(clubMembers) ? clubMembers.filter(Boolean) : [];
+    const existingNames = new Set(pList.map((p) => p?.name).filter(Boolean));
+    return new Set(
+      cList
+        .filter((m) => m && m.id && m.name && existingNames.has(m.name))
+        .map((m) => m.id)
+    );
   });
+
+  // Keep selection synchronized when modal opens or members list updates
+  useEffect(() => {
+    if (isOpen) {
+      const existingNames = new Set(safeParticipants.map((p) => p?.name).filter(Boolean));
+      setSelectedMemberIds(
+        new Set(
+          safeClubMembers
+            .filter((m) => m && m.id && m.name && existingNames.has(m.name))
+            .map((m) => m.id)
+        )
+      );
+    }
+  }, [isOpen, safeClubMembers, safeParticipants]);
 
   // Tab 3: Manual single add state
   const [newName, setNewName] = useState('');
@@ -54,14 +83,17 @@ export const RosterModal: React.FC<RosterModalProps> = ({
   const [newPhone, setNewPhone] = useState('');
   const [newGroup, setNewGroup] = useState('');
   const [saveToClubDb, setSaveToClubDb] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  // Parsed preview for Tab 1
+  const parsedPreview = useMemo(() => {
+    return parsePastedRoster(pasteText, safeClubMembers);
+  }, [pasteText, safeClubMembers]);
 
   if (!isOpen) return null;
 
-  // Parsed preview
-  const parsedPreview = parsePastedRoster(pasteText, clubMembers);
-
   const handleApplyPastedRoster = () => {
-    if (parsedPreview.length === 0) {
+    if (!parsedPreview || parsedPreview.length === 0) {
       onShowToast('추출된 참석자 명단이 없습니다. 텍스트를 확인해주세요.', 'error');
       return;
     }
@@ -71,9 +103,9 @@ export const RosterModal: React.FC<RosterModalProps> = ({
       onShowToast(`총 ${parsedPreview.length}명의 새로운 대회 참석자 명단이 적용되었습니다!`, 'success');
     } else {
       // Append mode: merge without duplicate names
-      const existingNames = new Set(participants.map((p) => p.name));
-      const newItems = parsedPreview.filter((p) => !existingNames.has(p.name));
-      onSetParticipants([...participants, ...newItems]);
+      const existingNames = new Set(safeParticipants.map((p) => p?.name).filter(Boolean));
+      const newItems = parsedPreview.filter((p) => p && !existingNames.has(p.name));
+      onSetParticipants([...safeParticipants, ...newItems]);
       onShowToast(`${newItems.length}명이 기존 명단에 추가되었습니다!`, 'success');
     }
     setPasteText('');
@@ -81,19 +113,19 @@ export const RosterModal: React.FC<RosterModalProps> = ({
   };
 
   const handleApplyClubMembers = () => {
-    const selectedMembers = clubMembers.filter((m) => selectedMemberIds.has(m.id));
+    const selectedMembers = safeClubMembers.filter((m) => m && m.id && selectedMemberIds.has(m.id));
     if (selectedMembers.length === 0) {
       onShowToast('선택된 회원이 없습니다.', 'error');
       return;
     }
 
     const newParticipants: Participant[] = selectedMembers.map((m) => {
-      const existing = participants.find((p) => p.name === m.name);
+      const existing = safeParticipants.find((p) => p && p.name === m.name);
       return {
         id: existing?.id || `p-${Date.now()}-${m.id}`,
-        name: m.name,
-        phone: m.phone,
-        division: m.division,
+        name: m.name || '무명',
+        phone: m.phone || '',
+        division: m.division || '일반',
         group: existing?.group || '',
         checked: existing?.checked || false,
         checkedAt: existing?.checkedAt || null,
@@ -115,7 +147,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
   };
 
   const handleSelectAllMembers = () => {
-    setSelectedMemberIds(new Set(clubMembers.map((m) => m.id)));
+    setSelectedMemberIds(new Set(safeClubMembers.filter((m) => m && m.id).map((m) => m.id)));
   };
 
   const handleDeselectAllMembers = () => {
@@ -128,12 +160,10 @@ export const RosterModal: React.FC<RosterModalProps> = ({
     onShowToast('샘플 회원 22명 데이터가 복원되었습니다.', 'info');
   };
 
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-
   // Club Member DB operations
   const handleDeleteSingleMember = (e: React.MouseEvent, id: string, name: string) => {
     e.stopPropagation();
-    const updated = clubMembers.filter((m) => m.id !== id);
+    const updated = safeClubMembers.filter((m) => m && m.id !== id);
     onUpdateClubMembers(updated);
     
     // Also remove from selected
@@ -151,7 +181,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
     }
 
     const count = selectedMemberIds.size;
-    const updated = clubMembers.filter((m) => !selectedMemberIds.has(m.id));
+    const updated = safeClubMembers.filter((m) => m && !selectedMemberIds.has(m.id));
     onUpdateClubMembers(updated);
     setSelectedMemberIds(new Set());
     onShowToast(`선택한 회원 ${count}명이 클럽 DB에서 삭제되었습니다.`, 'info');
@@ -192,7 +222,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
         phone: newP.phone,
         division: newP.division,
       };
-      onUpdateClubMembers([...clubMembers, newMember]);
+      onUpdateClubMembers([...safeClubMembers, newMember]);
       onShowToast(`${newP.name} 님이 대회 명단 및 클럽 회원 DB에 추가되었습니다!`, 'success');
     } else {
       onShowToast(`${newP.name} 님이 대회 명단에 추가되었습니다!`, 'success');
@@ -252,7 +282,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
             }`}
           >
             <Users className="w-4 h-4 text-slate-700" />
-            <span>클럽 회원 DB ({clubMembers.length})</span>
+            <span>클럽 회원 DB ({safeClubMembers.length})</span>
           </button>
 
           <button
@@ -381,7 +411,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                   <h3 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-2">
                     <span>클럽 상시 회원 명단</span>
                     <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 font-extrabold text-xs font-mono">
-                      {clubMembers.length}명
+                      {safeClubMembers.length}명
                     </span>
                   </h3>
                   <p className="text-[11px] text-slate-500">대회에 참석할 회원을 체크하여 대회 명단으로 등록합니다.</p>
@@ -390,7 +420,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                 <div className="flex flex-wrap items-center gap-1.5">
                   <button
                     onClick={handleSelectAllMembers}
-                    disabled={clubMembers.length === 0}
+                    disabled={safeClubMembers.length === 0}
                     className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 text-xs font-bold cursor-pointer transition-colors"
                   >
                     전체 선택
@@ -417,7 +447,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                   )}
 
                   {/* Clear All DB button */}
-                  {clubMembers.length > 0 && (
+                  {safeClubMembers.length > 0 && (
                     <button
                       id="clear-club-db-btn"
                       onClick={() => setShowClearConfirm(true)}
@@ -446,7 +476,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                 <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-950 space-y-2 animate-in fade-in">
                   <div className="font-bold flex items-center gap-1.5 text-rose-900">
                     <Trash2 className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span>정말로 클럽 회원 DB (총 {clubMembers.length}명)을 모두 삭제하시겠습니까?</span>
+                    <span>정말로 클럽 회원 DB (총 {safeClubMembers.length}명)을 모두 삭제하시겠습니까?</span>
                   </div>
                   <p className="text-rose-800 text-[11px] font-medium leading-relaxed">
                     삭제 시 상시 회원 명단이 완전히 비워지며, 필요할 때 언제든 '샘플 22명 DB' 버튼이나 카톡 투표 붙여넣기로 다시 등록하실 수 있습니다.
@@ -469,7 +499,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
               )}
 
               {/* Empty State */}
-              {clubMembers.length === 0 ? (
+              {safeClubMembers.length === 0 ? (
                 <div className="p-8 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-center space-y-3">
                   <div className="w-12 h-12 rounded-2xl bg-slate-200 text-slate-500 mx-auto flex items-center justify-center font-bold">
                     <Users className="w-6 h-6" />
@@ -500,7 +530,8 @@ export const RosterModal: React.FC<RosterModalProps> = ({
               ) : (
                 /* Members List with checkboxes and individual delete buttons */
                 <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
-                  {clubMembers.map((member) => {
+                  {safeClubMembers.map((member) => {
+                    if (!member || !member.id) return null;
                     const isSelected = selectedMemberIds.has(member.id);
                     return (
                       <div
@@ -522,9 +553,9 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                           >
                             {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                           </div>
-                          <span className="font-black text-sm text-slate-900 truncate">{member.name}</span>
+                          <span className="font-black text-sm text-slate-900 truncate">{member.name || '이름 없음'}</span>
                           <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold shrink-0">
-                            {member.division}
+                            {member.division || '일반'}
                           </span>
                           {member.ntrp && (
                             <span className="text-[11px] text-slate-500 font-mono hidden sm:inline shrink-0">
@@ -534,12 +565,12 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                         </div>
 
                         <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-xs font-mono text-slate-500 hidden sm:inline">{member.phone}</span>
+                          <span className="text-xs font-mono text-slate-500 hidden sm:inline">{member.phone || ''}</span>
 
                           {/* Individual Delete Button */}
                           <button
                             id={`delete-member-${member.id}`}
-                            onClick={(e) => handleDeleteSingleMember(e, member.id, member.name)}
+                            onClick={(e) => handleDeleteSingleMember(e, member.id, member.name || '')}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer opacity-70 group-hover:opacity-100"
                             title={`'${member.name}' 회원을 DB에서 삭제`}
                           >

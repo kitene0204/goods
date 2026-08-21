@@ -251,7 +251,7 @@ export function saveEventConfig(config: EventConfig): void {
 export function loadParticipants(): Participant[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.PARTICIPANTS);
-    if (saved) {
+    if (saved !== null) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
@@ -263,7 +263,7 @@ export function loadParticipants(): Participant[] {
 
 export function saveParticipants(participants: Participant[]): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.PARTICIPANTS, JSON.stringify(participants));
+    localStorage.setItem(STORAGE_KEYS.PARTICIPANTS, JSON.stringify(participants || []));
   } catch (e) {
     console.error('Failed to save participants:', e);
   }
@@ -272,9 +272,9 @@ export function saveParticipants(participants: Participant[]): void {
 export function loadClubMembers(): ClubMember[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.CLUB_MEMBERS);
-    if (saved) {
+    if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.error('Failed to load club members:', e);
@@ -284,7 +284,7 @@ export function loadClubMembers(): ClubMember[] {
 
 export function saveClubMembers(members: ClubMember[]): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.CLUB_MEMBERS, JSON.stringify(members));
+    localStorage.setItem(STORAGE_KEYS.CLUB_MEMBERS, JSON.stringify(members || []));
   } catch (e) {
     console.error('Failed to save club members:', e);
   }
@@ -316,8 +316,9 @@ export function saveSyncHistory(history: SyncHistoryEntry[]): void {
  * - "홍길동 / 은배 / 1코트"
  * - Tab-separated lines from spreadsheets
  */
-export function parsePastedRoster(rawText: string, membersMaster: ClubMember[]): Participant[] {
-  if (!rawText.trim()) return [];
+export function parsePastedRoster(rawText: string, membersMaster: ClubMember[] = []): Participant[] {
+  if (!rawText || !rawText.trim()) return [];
+  const masterList = Array.isArray(membersMaster) ? membersMaster.filter(Boolean) : [];
 
   const lines = rawText
     .split(/[\r\n]+/)
@@ -387,7 +388,7 @@ export function parsePastedRoster(rawText: string, membersMaster: ClubMember[]):
       }
 
       // Look up member from master DB if exists to enrich info
-      const matchedMember = membersMaster.find((m) => m.name === name);
+      const matchedMember = masterList.find((m) => m && m.name === name);
       const finalDivision = division !== '일반' ? division : (matchedMember?.division || '일반');
       const finalPhone = phone || matchedMember?.phone || '';
 

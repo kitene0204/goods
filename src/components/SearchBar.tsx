@@ -10,8 +10,9 @@ interface SearchBarProps {
   totalMatches: number;
   viewMode: 'grid' | 'list';
   onViewModeChange: (mode: 'grid' | 'list') => void;
-  sortOrder: 'number' | 'name' | 'time';
-  onCycleSort: () => void;
+  sortOrder: 'default' | 'name' | 'checked';
+  onCycleSort?: () => void;
+  onSortOrderChange?: (order: 'default' | 'name' | 'checked') => void;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
@@ -25,7 +26,16 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   onViewModeChange,
   sortOrder,
   onCycleSort,
+  onSortOrderChange,
 }) => {
+  const handleSortToggle = () => {
+    if (onCycleSort) {
+      onCycleSort();
+    } else if (onSortOrderChange) {
+      const nextOrder = sortOrder === 'default' ? 'name' : sortOrder === 'name' ? 'checked' : 'default';
+      onSortOrderChange(nextOrder);
+    }
+  };
   return (
     <div className="space-y-3 mb-4">
       {/* Top Search Input & Action Controls */}
@@ -59,13 +69,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         {/* Sort Order Toggle */}
         <button
           id="search-sort-btn"
-          onClick={onCycleSort}
+          onClick={handleSortToggle}
           className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 text-sm font-semibold"
           title="정렬 방식 전환"
         >
           <ArrowUpDown className="w-5 h-5 text-slate-600" />
           <span className="hidden md:inline text-xs text-slate-600 font-bold">
-            {sortOrder === 'number' ? '번호순' : sortOrder === 'name' ? '이름순' : '수령순'}
+            {sortOrder === 'default' ? '기본순' : sortOrder === 'name' ? '이름순' : '미수령순'}
           </span>
         </button>
 
