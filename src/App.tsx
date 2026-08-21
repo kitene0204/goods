@@ -28,6 +28,7 @@ import { GoogleSheetModal } from './components/GoogleSheetModal';
 import { LuckyDrawModal } from './components/LuckyDrawModal';
 import { EventSettingsModal } from './components/EventSettingsModal';
 import { SupabaseModal } from './components/SupabaseModal';
+import { ThumbnailModal } from './components/ThumbnailModal';
 import { Toast, ToastMessage } from './components/Toast';
 import confetti from 'canvas-confetti';
 import {
@@ -71,6 +72,7 @@ export default function App() {
   const [isSupabaseOpen, setIsSupabaseOpen] = useState(false);
   const [isLuckyDrawOpen, setIsLuckyDrawOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isThumbnailOpen, setIsThumbnailOpen] = useState(false);
 
   // 4. Toast Notifications
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -396,6 +398,7 @@ export default function App() {
         onOpenRoster={() => setIsRosterOpen(true)}
         onOpenGoogleSheet={() => setIsGoogleSheetOpen(true)}
         onOpenSupabase={() => setIsSupabaseOpen(true)}
+        onOpenThumbnail={() => setIsThumbnailOpen(true)}
         onOpenLuckyDraw={() => setIsLuckyDrawOpen(true)}
         onToggleTheme={handleToggleTheme}
         onCycleFontSize={handleCycleFontSize}
@@ -536,6 +539,20 @@ export default function App() {
                 </div>
                 <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">
                   LIVE
+                </span>
+              </button>
+
+              <button
+                id="sidebar-thumbnail-btn"
+                onClick={() => setIsThumbnailOpen(true)}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-lime-600" />
+                  <span>앱 1:1 썸네일 다운로드</span>
+                </div>
+                <span className="text-[10px] bg-lime-100 text-lime-800 px-1.5 py-0.5 rounded font-bold">
+                  1:1
                 </span>
               </button>
 
@@ -782,6 +799,12 @@ export default function App() {
           setConfig(newC);
           triggerLocalChangePush();
         }}
+        onShowToast={showToast}
+      />
+
+      <ThumbnailModal
+        isOpen={isThumbnailOpen}
+        onClose={() => setIsThumbnailOpen(false)}
         onShowToast={showToast}
       />
 

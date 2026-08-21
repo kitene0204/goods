@@ -13,7 +13,8 @@ import {
   MapPin,
   Calendar,
   RefreshCw,
-  Zap
+  Zap,
+  Image as ImageIcon
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -28,6 +29,7 @@ interface HeaderProps {
   onOpenRoster: () => void;
   onOpenGoogleSheet: () => void;
   onOpenSupabase: () => void;
+  onOpenThumbnail?: () => void;
   onOpenLuckyDraw: () => void;
   onToggleTheme: () => void;
   onCycleFontSize: () => void;
@@ -45,6 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenRoster,
   onOpenGoogleSheet,
   onOpenSupabase,
+  onOpenThumbnail,
   onOpenLuckyDraw,
   onToggleTheme,
   onCycleFontSize,
@@ -154,6 +157,18 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Gift className="w-4 h-4" />
         </button>
+
+        {/* Thumbnail Preview Modal Button */}
+        {onOpenThumbnail && (
+          <button
+            id="header-thumbnail-btn"
+            onClick={onOpenThumbnail}
+            className="hidden sm:flex items-center gap-1 p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-lime-400 border border-slate-700 text-xs font-bold transition-all cursor-pointer"
+            title="앱 정사각형 썸네일 보기 및 다운로드"
+          >
+            <ImageIcon className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Font Size Toggle */}
         <button
