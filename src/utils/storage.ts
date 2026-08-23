@@ -103,139 +103,139 @@ export const HANWOOLIM_CLUB_MEMBERS: ClubMember[] = [
 
 export const SAMPLE_CLUB_MEMBERS = HANWOOLIM_CLUB_MEMBERS;
 
-// 한울림 회원 명부 기반 기본 대회 참석자 (가나다 오름차순, 추가 항목은 사용자 지정 전까지 비워둠)
+// 한울림 회원 명부 기반 기본 대회 참석자 (가나다 오름차순, 비고란 지원)
 export const INITIAL_PARTICIPANTS: Participant[] = [
   {
     id: 'p-1',
     name: '강명규',
     phone: '',
     division: '일반',
-    group: '1코트',
+    group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '',
+    notes: 'XL(105)',
   },
   {
     id: 'p-2',
     name: '강석원',
     phone: '',
     division: '일반',
-    group: '1코트',
+    group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '',
+    notes: 'L(100)',
   },
   {
     id: 'p-3',
     name: '강운석',
     phone: '',
     division: '일반',
-    group: '2코트',
+    group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '',
+    notes: '100',
   },
   {
     id: 'p-4',
     name: '고광직',
     phone: '',
     division: '일반',
-    group: '2코트',
+    group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '',
+    notes: '105(XL)',
   },
   {
     id: 'p-5',
     name: '권용국',
     phone: '',
     division: '일반',
-    group: '3코트',
+    group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '',
+    notes: 'L',
   },
   {
     id: 'p-6',
     name: '김동찬',
     phone: '',
     division: '일반',
-    group: '3코트',
+    group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '',
+    notes: 'XL',
   },
   {
     id: 'p-7',
     name: '김선경',
     phone: '',
     division: '일반',
-    group: '4코트',
+    group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '',
+    notes: '95(M)',
   },
   {
     id: 'p-8',
     name: '김영수',
     phone: '',
     division: '일반',
-    group: '4코트',
+    group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '',
+    notes: '100',
   },
   {
     id: 'p-9',
     name: '김영현',
     phone: '',
     division: '일반',
-    group: '1코트',
+    group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '',
+    notes: '105',
   },
   {
     id: 'p-10',
     name: '김요셉',
     phone: '',
     division: '일반',
-    group: '2코트',
+    group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '',
+    notes: 'XL(105)',
   },
   {
     id: 'p-11',
     name: '배지혁',
     phone: '',
     division: '일반',
-    group: '3코트',
+    group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '',
+    notes: 'L(100)',
   },
   {
     id: 'p-12',
     name: '이정식',
     phone: '',
     division: '일반',
-    group: '4코트',
+    group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '',
+    notes: '105',
   },
 ];
 
@@ -300,8 +300,14 @@ export function loadParticipants(): Participant[] {
             notes = '';
           }
 
+          let group = p.group || '';
+          if (group.includes('코트') || group.includes('조')) {
+            group = '';
+          }
+
           return {
             ...p,
+            group,
             items,
             notes,
           };
@@ -451,8 +457,27 @@ export function parsePastedRoster(rawText: string, membersMaster: ClubMember[] =
       remaining = remaining.replace(divMatch[0], '').trim();
     }
 
-    // 5. Clean up name
-    // Strip separators like '/', '|', etc.
+    // 5. Extract notes / T-shirt size (e.g., "XL(105)", "100(L)", "105", "100", "95", "XL", "L", "M", "2XL", "3XL", "S", or remark after dash/slash)
+    let parsedNotes = '';
+    const sizeMatch = remaining.match(/((?:90|95|100|105|110|115|120)\s*(?:\([A-Za-z0-9]+\))?|(?:2XL|3XL|XL|XXL|L|M|S)\s*(?:\(\d+\))?)/i);
+    if (sizeMatch) {
+      parsedNotes = sizeMatch[1].trim();
+      remaining = remaining.replace(sizeMatch[0], '').trim();
+    }
+
+    // 6. Clean up name and extra notes
+    // If there is extra note after "-" or "/" (e.g. "홍길동 - 라켓백")
+    if (remaining.includes('-') || remaining.includes('/')) {
+      const parts = remaining.split(/[-/]/);
+      if (parts.length > 1 && parts[1].trim()) {
+        const extra = parts.slice(1).join(' ').trim();
+        if (extra && !parsedNotes) {
+          parsedNotes = extra;
+        }
+        remaining = parts[0].trim();
+      }
+    }
+
     remaining = remaining.replace(/[\/\|\t]/g, ' ').trim();
     const nameMatch = remaining.match(/^[^\s]+/);
     const name = nameMatch ? nameMatch[0].trim() : remaining.trim();
@@ -462,6 +487,7 @@ export function parsePastedRoster(rawText: string, membersMaster: ClubMember[] =
       const matchedMember = masterList.find((m) => m && m.name === name);
       const finalDivision = division !== '일반' ? division : (matchedMember?.division || '일반');
       const finalPhone = phone || matchedMember?.phone || '';
+      const finalNotes = parsedNotes || matchedMember?.notes || '';
 
       results.push({
         id: `p-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
@@ -472,6 +498,7 @@ export function parsePastedRoster(rawText: string, membersMaster: ClubMember[] =
         checked: false,
         checkedAt: null,
         items: {},
+        notes: finalNotes,
       });
     }
   }

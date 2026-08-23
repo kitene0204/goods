@@ -114,7 +114,14 @@ export default function App() {
     // 1. Initial Load: Fetch latest remote participants from Supabase if available
     fetchParticipantsFromSupabase().then((remoteData) => {
       if (remoteData && remoteData.length > 0) {
-        setParticipants(remoteData);
+        const cleanedRemote = remoteData.map((p) => {
+          let group = p.group || '';
+          if (group.includes('코트') || group.includes('조')) {
+            group = '';
+          }
+          return { ...p, group };
+        });
+        setParticipants(cleanedRemote);
         setIsSupabaseConnected(true);
       } else {
         // Table is empty, seed with initial list

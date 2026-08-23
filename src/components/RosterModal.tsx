@@ -11,7 +11,10 @@ import {
   Plus, 
   RotateCcw,
   ArrowRight,
-  Info
+  Info,
+  Pencil,
+  Save,
+  Shirt
 } from 'lucide-react';
 import { parsePastedRoster, SAMPLE_CLUB_MEMBERS } from '../utils/storage';
 
@@ -82,8 +85,67 @@ export const RosterModal: React.FC<RosterModalProps> = ({
   const [newDivision, setNewDivision] = useState<TournamentDivision>('일반');
   const [newPhone, setNewPhone] = useState('');
   const [newGroup, setNewGroup] = useState('');
+  const [newNotes, setNewNotes] = useState('');
   const [saveToClubDb, setSaveToClubDb] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  // Edit Single Member Modal State
+  const [editingMember, setEditingMember] = useState<ClubMember | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDivision, setEditDivision] = useState<TournamentDivision>('일반');
+  const [editPhone, setEditPhone] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+
+  // Open edit modal for a member
+  const handleStartEditMember = (e: React.MouseEvent, member: ClubMember) => {
+    e.stopPropagation();
+    setEditingMember(member);
+    setEditName(member.name || '');
+    setEditDivision((member.division as TournamentDivision) || '일반');
+    setEditPhone(member.phone || '');
+    setEditNotes(member.notes || '');
+  };
+
+  // Save edited member
+  const handleSaveEditedMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMember || !editName.trim()) {
+      onShowToast('회원 이름을 입력해주세요.', 'error');
+      return;
+    }
+
+    const updatedMember: ClubMember = {
+      ...editingMember,
+      name: editName.trim(),
+      division: editDivision,
+      phone: editPhone.trim(),
+      notes: editNotes.trim(),
+    };
+
+    // Update Club DB
+    const updatedMembersList = safeClubMembers
+      .map((m) => (m.id === editingMember.id ? updatedMember : m))
+      .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+    onUpdateClubMembers(updatedMembersList);
+
+    // Also synchronize with current active tournament participants if this member is currently registered
+    const updatedParticipantsList = safeParticipants.map((p) => {
+      if (p.name === editingMember.name || p.id.includes(editingMember.id)) {
+        return {
+          ...p,
+          name: updatedMember.name,
+          division: updatedMember.division,
+          phone: updatedMember.phone,
+          notes: updatedMember.notes || p.notes || '',
+        };
+      }
+      return p;
+    });
+    onSetParticipants(updatedParticipantsList);
+
+    onShowToast(`회원 '${updatedMember.name}' 님의 정보(비고/사이즈)가 수정되었습니다.`, 'success');
+    setEditingMember(null);
+  };
 
   // Parsed preview for Tab 1 (항상 이름 오름차순 정렬)
   const parsedPreview = useMemo(() => {
@@ -142,7 +204,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
           checked: existing?.checked || false,
           checkedAt: existing?.checkedAt || null,
           items: existing?.items || {},
-          notes: existing?.notes || '',
+          notes: existing?.notes || m.notes || '',
         };
       })
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
@@ -223,7 +285,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
       checked: false,
       checkedAt: null,
       items: {},
-      notes: '',
+      notes: newNotes.trim(),
     };
 
     onAddParticipant(newP);
@@ -234,6 +296,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
         name: newP.name,
         phone: newP.phone,
         division: newP.division,
+        notes: newP.notes,
       };
       const updated = [...safeClubMembers, newMember].sort((a, b) =>
         (a.name || '').localeCompare(b.name || '', 'ko')
@@ -247,6 +310,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
     setNewName('');
     setNewPhone('');
     setNewGroup('');
+    setNewNotes('');
   };
 
   return (
@@ -376,12 +440,19 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                       {parsedPreview.map((p, i) => (
                         <div
                           key={i}
-                          className="flex items-center justify-between px-2.5 py-1.5 bg-white rounded-xl border border-slate-200 text-xs shadow-xs"
+                          className="flex items-center justify-between px-2.5 py-1.5 bg-white rounded-xl border border-slate-200 text-xs shadow-xs gap-1"
                         >
                           <span className="font-bold text-slate-900 truncate">{p.name}</span>
-                          <span className="text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded font-bold">
-                            {p.division}
-                          </span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {p.notes && (
+                              <span className="text-[10px] text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded font-extrabold truncate max-w-[80px]">
+                                👕 {p.notes}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded font-bold">
+                              {p.division}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -573,6 +644,12 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                           <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold shrink-0">
                             {member.division || '일반'}
                           </span>
+                          {member.notes && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-900 font-extrabold flex items-center gap-1 shrink-0">
+                              <span>👕</span>
+                              <span>{member.notes}</span>
+                            </span>
+                          )}
                           {member.ntrp && (
                             <span className="text-[11px] text-slate-500 font-mono hidden sm:inline shrink-0">
                               NTRP {member.ntrp}
@@ -580,14 +657,24 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                           )}
                         </div>
 
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-xs font-mono text-slate-500 hidden sm:inline">{member.phone || ''}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-xs font-mono text-slate-500 hidden sm:inline mr-1">{member.phone || ''}</span>
+
+                          {/* Edit Member Button */}
+                          <button
+                            id={`edit-member-${member.id}`}
+                            onClick={(e) => handleStartEditMember(e, member)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer"
+                            title={`'${member.name}' 회원 정보 및 비고(사이즈) 수정`}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
 
                           {/* Individual Delete Button */}
                           <button
                             id={`delete-member-${member.id}`}
                             onClick={(e) => handleDeleteSingleMember(e, member.id, member.name || '')}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer opacity-70 group-hover:opacity-100"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                             title={`'${member.name}' 회원을 DB에서 삭제`}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -650,13 +737,13 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">조 / 코트 지정</label>
+                  <label className="text-xs font-bold text-slate-700">비고 / 단체티 사이즈</label>
                   <input
                     type="text"
-                    value={newGroup}
-                    onChange={(e) => setNewGroup(e.target.value)}
-                    placeholder="예: 1코트, A조"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-lime-500"
+                    value={newNotes}
+                    onChange={(e) => setNewNotes(e.target.value)}
+                    placeholder="예: XL(105), 100(L), L, 라켓백"
+                    className="w-full bg-amber-50/50 border border-amber-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold placeholder-slate-400"
                   />
                 </div>
               </div>
@@ -670,7 +757,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                   className="w-4 h-4 rounded text-lime-600 focus:ring-lime-500 cursor-pointer"
                 />
                 <label htmlFor="save-to-club-db-checkbox" className="text-xs font-bold text-slate-800 cursor-pointer">
-                  클럽 상시 회원 DB에도 함께 등록하기
+                  클럽 상시 회원 DB에도 함께 등록하기 (비고/사이즈 포함)
                 </label>
               </div>
 
@@ -719,6 +806,108 @@ export const RosterModal: React.FC<RosterModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Edit Member Modal Popup */}
+      {editingMember && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-lime-100 text-slate-900 flex items-center justify-center font-bold">
+                  <Pencil className="w-4 h-4 text-slate-800" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">회원 정보 및 비고 수정</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">이름, 부수, 연락처 및 단체티 사이즈를 수정합니다</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingMember(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditedMember} className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">회원 이름 *</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-lime-500 font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">구분 / 부수</label>
+                  <select
+                    value={editDivision}
+                    onChange={(e) => setEditDivision(e.target.value as TournamentDivision)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-lime-500 font-medium"
+                  >
+                    <option value="금배부">금배부</option>
+                    <option value="은배부">은배부</option>
+                    <option value="동배부">동배부</option>
+                    <option value="신인부">신인부</option>
+                    <option value="마스터즈">마스터즈</option>
+                    <option value="일반">일반</option>
+                    <option value="게스트">게스트</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">전화번호</label>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="010-0000-0000"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-lime-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <Shirt className="w-3.5 h-3.5 text-lime-600" />
+                  <span>비고 / 단체티 사이즈 (예: XL(105), 100(L))</span>
+                </label>
+                <input
+                  type="text"
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="예: XL(105), 100(L), L, 라켓백 등..."
+                  className="w-full bg-amber-50/60 border border-amber-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold placeholder-slate-400"
+                />
+                <p className="text-[11px] text-slate-500">
+                  대회 명단 카드의 이름 바로 아래에 굵은 배지로 표시되어 배부 시 바로 확인됩니다.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingMember(null)}
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs border border-slate-300 cursor-pointer"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-lime-400 font-black text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>수정 완료</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

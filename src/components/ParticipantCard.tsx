@@ -96,16 +96,32 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
           </span>
         </div>
 
-        {/* Middle Name */}
-        <div className="my-2 min-w-0">
+        {/* Middle Name & Notes (T-Shirt Size / Remark) */}
+        <div className="my-1.5 min-w-0">
           <p className={`text-2xl sm:text-3xl font-black tracking-tight truncate ${participant.checked ? 'text-white' : 'text-slate-900'}`}>
             {participant.name}
           </p>
-          {participant.group && (
-            <p className={`text-xs font-medium truncate ${participant.checked ? 'text-lime-100' : 'text-slate-500'}`}>
-              {participant.group} {participant.phone ? `· ${participant.phone.slice(-4)}` : ''}
+          {participant.notes ? (
+            <div className="mt-1 flex items-center gap-1.5">
+              <span className={`inline-flex items-center gap-1 text-xs sm:text-sm font-extrabold px-2 py-0.5 rounded-lg truncate max-w-full ${
+                participant.checked
+                  ? 'bg-lime-600/90 text-white border border-lime-400/50'
+                  : 'bg-amber-50 text-amber-900 border border-amber-300 shadow-xs'
+              }`}>
+                <span>👕</span>
+                <span className="truncate">{participant.notes}</span>
+              </span>
+              {participant.phone && (
+                <span className={`text-[11px] font-mono ${participant.checked ? 'text-lime-100' : 'text-slate-400'}`}>
+                  · {participant.phone.slice(-4)}
+                </span>
+              )}
+            </div>
+          ) : participant.phone ? (
+            <p className={`text-[11px] font-mono truncate mt-0.5 ${participant.checked ? 'text-lime-100' : 'text-slate-400'}`}>
+              {participant.phone}
             </p>
-          )}
+          ) : null}
         </div>
 
         {/* Bottom Status Row */}
@@ -224,8 +240,9 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
               )}
 
               {participant.notes && (
-                <span className="text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px] truncate max-w-[200px]">
-                  💬 {participant.notes}
+                <span className="inline-flex items-center gap-1 text-amber-950 bg-amber-100 border border-amber-300 font-extrabold px-2 py-0.5 rounded text-xs truncate max-w-[240px]">
+                  <span>👕</span>
+                  <span>{participant.notes}</span>
                 </span>
               )}
             </div>
@@ -319,15 +336,15 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
-              <Edit3 className="w-3 h-3" /> 관리자 메모 (참가비 현금 납부, 특이사항 등):
+            <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+              <Edit3 className="w-3 h-3 text-slate-500" /> 단체티 사이즈 / 비고 메모 (예: XL(105), L(100), 라켓백):
             </label>
             <input
               id={`notes-input-${participant.id}`}
               type="text"
               value={notesDraft}
               onChange={(e) => setNotesDraft(e.target.value)}
-              placeholder="메모를 입력하세요..."
+              placeholder="예: XL(105), 100(L), 참가비 완납 등..."
               className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-500"
             />
           </div>

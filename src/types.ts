@@ -30,6 +30,7 @@ export interface ClubMember {
   gender?: '남' | '여';
   ntrp?: string; // e.g., "3.5", "4.0"
   memberNumber?: string;
+  notes?: string; // e.g. 단체티 사이즈 (XL, 105), 비고
 }
 
 export interface EventConfig {
