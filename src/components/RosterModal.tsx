@@ -16,7 +16,7 @@ import {
   Save,
   Shirt
 } from 'lucide-react';
-import { parsePastedRoster, SAMPLE_CLUB_MEMBERS } from '../utils/storage';
+import { parsePastedRoster, formatBadgeNote, SAMPLE_CLUB_MEMBERS } from '../utils/storage';
 
 interface RosterModalProps {
   isOpen: boolean;
@@ -204,7 +204,7 @@ export const RosterModal: React.FC<RosterModalProps> = ({
           checked: existing?.checked || false,
           checkedAt: existing?.checkedAt || null,
           items: existing?.items || {},
-          notes: existing?.notes || m.notes || '',
+          notes: m.notes || existing?.notes || '',
         };
       })
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
@@ -444,11 +444,15 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                         >
                           <span className="font-bold text-slate-900 truncate">{p.name}</span>
                           <div className="flex items-center gap-1 shrink-0">
-                            {p.notes && (
-                              <span className="text-[10px] text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded font-extrabold truncate max-w-[80px]">
-                                👕 {p.notes}
-                              </span>
-                            )}
+                            {(() => {
+                              const badge = formatBadgeNote(p.notes);
+                              if (!badge) return null;
+                              return (
+                                <span className="text-[10px] text-slate-900 bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded font-black truncate max-w-[80px]">
+                                  {badge.icon} {badge.text}
+                                </span>
+                              );
+                            })()}
                             <span className="text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded font-bold">
                               {p.division}
                             </span>
@@ -644,12 +648,16 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                           <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold shrink-0">
                             {member.division || '일반'}
                           </span>
-                          {member.notes && (
-                            <span className="text-xs px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-900 font-extrabold flex items-center gap-1 shrink-0">
-                              <span>👕</span>
-                              <span>{member.notes}</span>
-                            </span>
-                          )}
+                          {(() => {
+                            const badge = formatBadgeNote(member.notes);
+                            if (!badge) return null;
+                            return (
+                              <span className="text-xs px-2 py-0.5 rounded bg-amber-50 border border-amber-300 text-slate-900 font-black flex items-center gap-1 shrink-0">
+                                <span>{badge.icon}</span>
+                                <span>{badge.text}</span>
+                              </span>
+                            );
+                          })()}
                           {member.ntrp && (
                             <span className="text-[11px] text-slate-500 font-mono hidden sm:inline shrink-0">
                               NTRP {member.ntrp}

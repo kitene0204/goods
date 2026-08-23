@@ -34,6 +34,8 @@ import {
   fetchParticipantsFromSupabase,
   upsertParticipantToSupabase,
   bulkUpsertParticipantsToSupabase,
+  replaceParticipantsInSupabase,
+  deleteParticipantFromSupabase,
   subscribeToSupabaseRealtime,
 } from './utils/supabaseClient';
 import { 
@@ -113,21 +115,32 @@ export default function App() {
   useEffect(() => {
     // 1. Initial Load: Fetch latest remote participants from Supabase if available
     fetchParticipantsFromSupabase().then((remoteData) => {
+      const localList = loadParticipants();
       if (remoteData && remoteData.length > 0) {
-        const cleanedRemote = remoteData.map((p) => {
-          let group = p.group || '';
-          if (group.includes('코트') || group.includes('조')) {
-            group = '';
-          }
-          return { ...p, group };
-        });
-        setParticipants(cleanedRemote);
+        const remoteHasNotes = remoteData.some((p) => !!p.notes && p.notes.trim().length > 0);
+        const localHasNotes = localList.some((p) => !!p.notes && p.notes.trim().length > 0);
+
+        // If local has detailed notes/sizes while remote table has old data without notes,
+        // synchronize local to Supabase so sizes are never lost on reload.
+        if (!remoteHasNotes && localHasNotes) {
+          replaceParticipantsInSupabase(localList);
+          setParticipants(localList);
+        } else {
+          const cleanedRemote = remoteData.map((p) => {
+            let group = p.group || '';
+            if (group.includes('코트') || group.includes('조')) {
+              group = '';
+            }
+            return { ...p, group };
+          });
+          setParticipants(cleanedRemote);
+          saveParticipants(cleanedRemote);
+        }
         setIsSupabaseConnected(true);
       } else {
         // Table is empty, seed with initial list
-        const currentList = loadParticipants();
-        if (currentList.length > 0) {
-          bulkUpsertParticipantsToSupabase(currentList).then((ok) => {
+        if (localList.length > 0) {
+          replaceParticipantsInSupabase(localList).then((ok) => {
             if (ok) setIsSupabaseConnected(true);
           });
         }
@@ -314,8 +327,21 @@ export default function App() {
   };
 
   const handleDeleteParticipant = (id: string) => {
-    setParticipants((prev) => prev.filter((p) => p.id !== id));
+    setParticipants((prev) => {
+      const updated = prev.filter((p) => p.id !== id);
+      saveParticipants(updated);
+      return updated;
+    });
+    deleteParticipantFromSupabase(id);
     showToast('참가자가 명단에서 삭제되었습니다.', 'info');
+    triggerLocalChangePush();
+  };
+
+  const handleSetParticipants = (newP: Participant[]) => {
+    const sorted = [...newP].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+    setParticipants(sorted);
+    saveParticipants(sorted);
+    replaceParticipantsInSupabase(sorted);
     triggerLocalChangePush();
   };
 
@@ -328,6 +354,7 @@ export default function App() {
       checkedAt: p.checkedAt || timeStr,
     }));
     setParticipants(nextList);
+    saveParticipants(nextList);
     bulkUpsertParticipantsToSupabase(nextList);
     showToast('전원 수령 완료 처리되었습니다.', 'success');
     triggerLocalChangePush();
@@ -340,13 +367,18 @@ export default function App() {
       checkedAt: null,
     }));
     setParticipants(nextList);
+    saveParticipants(nextList);
     bulkUpsertParticipantsToSupabase(nextList);
     showToast('수령 기록이 초기화되었습니다.', 'info');
     triggerLocalChangePush();
   };
 
   const handleAddParticipant = (newP: Participant) => {
-    setParticipants((prev) => [newP, ...prev]);
+    setParticipants((prev) => {
+      const updated = [newP, ...prev].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+      saveParticipants(updated);
+      return updated;
+    });
     upsertParticipantToSupabase(newP);
     triggerLocalChangePush();
   };
@@ -733,10 +765,7 @@ export default function App() {
         onClose={() => setIsRosterOpen(false)}
         participants={participants}
         clubMembers={clubMembers}
-        onSetParticipants={(newP) => {
-          setParticipants(newP);
-          triggerLocalChangePush();
-        }}
+        onSetParticipants={handleSetParticipants}
         onAddParticipant={handleAddParticipant}
         onUpdateClubMembers={setClubMembers}
         onShowToast={showToast}
@@ -753,10 +782,7 @@ export default function App() {
           triggerLocalChangePush();
         }}
         onAddSyncHistory={(entry) => setSyncHistory((prev) => [entry, ...prev])}
-        onImportParticipants={(newP) => {
-          setParticipants(newP);
-          triggerLocalChangePush();
-        }}
+        onImportParticipants={handleSetParticipants}
         onShowToast={showToast}
       />
 
@@ -773,10 +799,7 @@ export default function App() {
         isOpen={isSupabaseOpen}
         onClose={() => setIsSupabaseOpen(false)}
         participants={participants}
-        onUpdateParticipants={(newP) => {
-          setParticipants(newP);
-          triggerLocalChangePush();
-        }}
+        onUpdateParticipants={handleSetParticipants}
         onShowToast={showToast}
         isConnected={isSupabaseConnected}
       />

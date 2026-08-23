@@ -114,7 +114,7 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     checked: false,
     checkedAt: null,
     items: {},
-    notes: 'XL(105)',
+    notes: '100 (L)',
   },
   {
     id: 'p-2',
@@ -122,10 +122,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     phone: '',
     division: '일반',
     group: '',
-    checked: false,
-    checkedAt: null,
+    checked: true,
+    checkedAt: '18:55',
     items: {},
-    notes: 'L(100)',
+    notes: '100 (L)',
   },
   {
     id: 'p-3',
@@ -136,10 +136,21 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '100',
+    notes: '100 (L)',
   },
   {
     id: 'p-4',
+    name: '강전성',
+    phone: '',
+    division: '일반',
+    group: '',
+    checked: false,
+    checkedAt: null,
+    items: {},
+    notes: '100 (L)',
+  },
+  {
+    id: 'p-5',
     name: '고광직',
     phone: '',
     division: '일반',
@@ -147,10 +158,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '105(XL)',
+    notes: '105 (XL)',
   },
   {
-    id: 'p-5',
+    id: 'p-6',
     name: '권용국',
     phone: '',
     division: '일반',
@@ -158,10 +169,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     checked: false,
     checkedAt: null,
     items: {},
-    notes: 'L',
+    notes: '110 (2XL)',
   },
   {
-    id: 'p-6',
+    id: 'p-7',
     name: '김동찬',
     phone: '',
     division: '일반',
@@ -169,21 +180,21 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     checked: false,
     checkedAt: null,
     items: {},
-    notes: 'XL',
+    notes: '105 (XL)',
   },
   {
-    id: 'p-7',
+    id: 'p-8',
     name: '김선경',
     phone: '',
     division: '일반',
     group: '',
-    checked: false,
-    checkedAt: null,
+    checked: true,
+    checkedAt: '15:51',
     items: {},
-    notes: '95(M)',
+    notes: '100 (L)',
   },
   {
-    id: 'p-8',
+    id: 'p-9',
     name: '김영수',
     phone: '',
     division: '일반',
@@ -191,10 +202,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '100',
+    notes: '100 (L)',
   },
   {
-    id: 'p-9',
+    id: 'p-10',
     name: '김영현',
     phone: '',
     division: '일반',
@@ -202,10 +213,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '105',
+    notes: '105 (XL)',
   },
   {
-    id: 'p-10',
+    id: 'p-11',
     name: '김요셉',
     phone: '',
     division: '일반',
@@ -213,10 +224,10 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     checked: false,
     checkedAt: null,
     items: {},
-    notes: 'XL(105)',
+    notes: '105 (XL)',
   },
   {
-    id: 'p-11',
+    id: 'p-12',
     name: '배지혁',
     phone: '',
     division: '일반',
@@ -224,18 +235,7 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
     checked: false,
     checkedAt: null,
     items: {},
-    notes: 'L(100)',
-  },
-  {
-    id: 'p-12',
-    name: '이정식',
-    phone: '',
-    division: '일반',
-    group: '',
-    checked: false,
-    checkedAt: null,
-    items: {},
-    notes: '105',
+    notes: '100 (L)',
   },
 ];
 
@@ -378,9 +378,32 @@ export function saveSyncHistory(history: SyncHistoryEntry[]): void {
 }
 
 /**
+ * Helper to format badge notes (e.g. "100 (L)" -> { icon: "🎁", text: "L" }, "105 (XL)" -> { icon: "🎁", text: "XL" })
+ */
+export function formatBadgeNote(notes?: string): { icon: string; text: string } | null {
+  if (!notes || !notes.trim()) return null;
+  const trimmed = notes.trim();
+
+  // If note has parenthesis e.g. "100 (L)" or "105(XL)" or "110 (2XL)" -> extract "L", "XL", "2XL"
+  const parenMatch = trimmed.match(/\(([A-Za-z0-9]+)\)/);
+  if (parenMatch) {
+    return { icon: '🎁', text: parenMatch[1].trim() };
+  }
+
+  // If e.g. "L(100)" -> extract "L"
+  const prefixMatch = trimmed.match(/^([A-Za-z0-9]+)\s*\(/);
+  if (prefixMatch) {
+    return { icon: '🎁', text: prefixMatch[1].trim() };
+  }
+
+  return { icon: '🎁', text: trimmed };
+}
+
+/**
  * Smart Roster Parser
  * Converts various text formats into structured Participant objects:
- * - "1. 홍길동(금배) 010-1234-5678"
+ * - "이름사이즈강명규100 (L)강석원100 (L)..." (continuous string or table paste)
+ * - "1. 홍길동(금배) 010-1234-5678 100(L)"
  * - "홍길동, 김철수, 박영희"
  * - "홍길동 / 은배 / 1코트"
  * - Tab-separated lines from spreadsheets
@@ -389,10 +412,28 @@ export function parsePastedRoster(rawText: string, membersMaster: ClubMember[] =
   if (!rawText || !rawText.trim()) return [];
   const masterList = Array.isArray(membersMaster) ? membersMaster.filter(Boolean) : [];
 
-  const lines = rawText
+  // 1. Strip top-level table header tokens
+  let cleanedText = rawText
+    .replace(/^(?:이름\s*사이즈|이름\s*비고|순번\s*이름\s*사이즈|참가자|참석자|명단|번호\s*이름\s*사이즈|순번\s*이름|이름\s*전화번호\s*사이즈|이름)[\s\:\t\-]*/gi, '')
+    .trim();
+
+  // 2. If the text has no newlines or is a single concatenated block with repetitive name+size patterns
+  // (e.g. "강명규100 (L)강석원100 (L)강운석100 (L)..." or "강명규 100(L) 강석원 100(L)")
+  if (!cleanedText.includes('\n') || cleanedText.includes('(L)') || cleanedText.includes('(XL)') || cleanedText.includes('(2XL)')) {
+    // Insert newlines between concatenated name+size entries
+    cleanedText = cleanedText.replace(/(\([A-Za-z0-9]+\)|(?:2XL|3XL|XL|XXL|L|M|S))(?=[가-힣]{2,4})/g, '$1\n');
+  }
+
+  const lines = cleanedText
     .split(/[\r\n]+/)
     .map((l) => l.trim())
-    .filter(Boolean);
+    .filter((l) => {
+      if (!l) return false;
+      // Skip pure header lines
+      if (/^(?:이름|사이즈|순번|번호|비고|전화번호|부수|조|코트)[\s\t]*$/i.test(l)) return false;
+      if (/^(?:이름\s*사이즈|이름\s*비고|순번\s*이름)[\s\t]*$/i.test(l)) return false;
+      return true;
+    });
 
   const results: Participant[] = [];
 
@@ -412,6 +453,7 @@ export function parsePastedRoster(rawText: string, membersMaster: ClubMember[] =
             checked: false,
             checkedAt: null,
             items: {},
+            notes: matched?.notes || '',
           });
         }
       }
@@ -457,7 +499,7 @@ export function parsePastedRoster(rawText: string, membersMaster: ClubMember[] =
       remaining = remaining.replace(divMatch[0], '').trim();
     }
 
-    // 5. Extract notes / T-shirt size (e.g., "XL(105)", "100(L)", "105", "100", "95", "XL", "L", "M", "2XL", "3XL", "S", or remark after dash/slash)
+    // 5. Extract notes / T-shirt size (e.g., "100 (L)", "105 (XL)", "110 (2XL)", "XL(105)", "100(L)", "105", "100", "95", "XL", "L", "M", "2XL", "3XL", "S")
     let parsedNotes = '';
     const sizeMatch = remaining.match(/((?:90|95|100|105|110|115|120)\s*(?:\([A-Za-z0-9]+\))?|(?:2XL|3XL|XL|XXL|L|M|S)\s*(?:\(\d+\))?)/i);
     if (sizeMatch) {

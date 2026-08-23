@@ -176,6 +176,62 @@ export async function bulkUpsertParticipantsToSupabase(list: Participant[]): Pro
   }
 }
 
+// Completely replaces all participants in Supabase with the new list
+export async function replaceParticipantsInSupabase(list: Participant[]): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    // 1. Delete rows in participants table
+    const { error: delError } = await client
+      .from('participants')
+      .delete()
+      .neq('id', '___PLACEHOLDER_NEVER_MATCH___');
+
+    if (delError) {
+      console.warn('Supabase delete during replace notice:', delError);
+    }
+
+    // 2. Insert the fresh participant rows
+    if (list.length > 0) {
+      const rows = list.map(participantToDbRow);
+      // Batch in chunks of 50 to ensure high reliability
+      for (let i = 0; i < rows.length; i += 50) {
+        const chunk = rows.slice(i, i + 50);
+        const { error: insError } = await client
+          .from('participants')
+          .upsert(chunk, { onConflict: 'id' });
+
+        if (insError) {
+          console.warn('Supabase chunk insert notice:', insError);
+        }
+      }
+    }
+    return true;
+  } catch (err) {
+    console.error('Supabase replace error:', err);
+    return false;
+  }
+}
+
+// Delete a single participant from Supabase
+export async function deleteParticipantFromSupabase(id: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client || !id) return false;
+
+  try {
+    const { error } = await client.from('participants').delete().eq('id', id);
+    if (error) {
+      console.warn('Supabase single delete error:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Supabase single delete error:', err);
+    return false;
+  }
+}
+
 // Subscribe to real-time changes
 export function subscribeToSupabaseRealtime(
   onParticipantChange: (p: Participant) => void,

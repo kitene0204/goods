@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Gift
 } from 'lucide-react';
+import { formatBadgeNote } from '../utils/storage';
 
 interface ParticipantCardProps {
   participant: Participant;
@@ -101,27 +102,39 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
           <p className={`text-2xl sm:text-3xl font-black tracking-tight truncate ${participant.checked ? 'text-white' : 'text-slate-900'}`}>
             {participant.name}
           </p>
-          {participant.notes ? (
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className={`inline-flex items-center gap-1 text-xs sm:text-sm font-extrabold px-2 py-0.5 rounded-lg truncate max-w-full ${
-                participant.checked
-                  ? 'bg-lime-600/90 text-white border border-lime-400/50'
-                  : 'bg-amber-50 text-amber-900 border border-amber-300 shadow-xs'
-              }`}>
-                <span>👕</span>
-                <span className="truncate">{participant.notes}</span>
-              </span>
-              {participant.phone && (
-                <span className={`text-[11px] font-mono ${participant.checked ? 'text-lime-100' : 'text-slate-400'}`}>
-                  · {participant.phone.slice(-4)}
-                </span>
-              )}
-            </div>
-          ) : participant.phone ? (
-            <p className={`text-[11px] font-mono truncate mt-0.5 ${participant.checked ? 'text-lime-100' : 'text-slate-400'}`}>
-              {participant.phone}
-            </p>
-          ) : null}
+          {(() => {
+            const badge = formatBadgeNote(participant.notes);
+            if (badge) {
+              return (
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <span
+                    className={`inline-flex items-center gap-1 text-xs sm:text-sm font-black px-2 py-0.5 rounded-lg truncate max-w-full shadow-xs ${
+                      participant.checked
+                        ? 'bg-lime-800/80 text-white border border-lime-300/40'
+                        : 'bg-amber-50 text-slate-900 border border-amber-300'
+                    }`}
+                    title={participant.notes}
+                  >
+                    <span>{badge.icon}</span>
+                    <span className="truncate">{badge.text}</span>
+                  </span>
+                  {participant.phone && (
+                    <span className={`text-[11px] font-mono ${participant.checked ? 'text-lime-100' : 'text-slate-400'}`}>
+                      · {participant.phone.slice(-4)}
+                    </span>
+                  )}
+                </div>
+              );
+            }
+            if (participant.phone) {
+              return (
+                <p className={`text-[11px] font-mono truncate mt-0.5 ${participant.checked ? 'text-lime-100' : 'text-slate-400'}`}>
+                  {participant.phone}
+                </p>
+              );
+            }
+            return null;
+          })()}
         </div>
 
         {/* Bottom Status Row */}
@@ -239,12 +252,16 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
                 </a>
               )}
 
-              {participant.notes && (
-                <span className="inline-flex items-center gap-1 text-amber-950 bg-amber-100 border border-amber-300 font-extrabold px-2 py-0.5 rounded text-xs truncate max-w-[240px]">
-                  <span>👕</span>
-                  <span>{participant.notes}</span>
-                </span>
-              )}
+              {(() => {
+                const badge = formatBadgeNote(participant.notes);
+                if (!badge) return null;
+                return (
+                  <span className="inline-flex items-center gap-1 text-slate-900 bg-amber-50 border border-amber-300 font-black px-2 py-0.5 rounded text-xs truncate max-w-[240px]">
+                    <span>{badge.icon}</span>
+                    <span>{badge.text}</span>
+                  </span>
+                );
+              })()}
             </div>
           </div>
         </div>
