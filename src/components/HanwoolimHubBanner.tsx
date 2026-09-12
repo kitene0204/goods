@@ -52,20 +52,20 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
         <div className="group bg-slate-800/80 hover:bg-slate-800 border-2 border-indigo-500/40 hover:border-indigo-400 rounded-2xl p-3 sm:p-3.5 transition-all duration-200 shadow-md hover:shadow-indigo-500/10 flex flex-col justify-between">
           <div>
             <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <CreditCard className="w-5 h-5" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-sm font-black text-white group-hover:text-indigo-200 transition-colors">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-nowrap">
+                    <h3 className="text-sm font-black text-white group-hover:text-indigo-200 transition-colors whitespace-nowrap">
                       회비 관리
                     </h3>
-                    <span className="text-[9px] font-black bg-indigo-500 text-white px-1.5 py-0.2 rounded-md">
+                    <span className="text-[9px] font-black bg-indigo-500 text-white px-1.5 py-0.2 rounded-md whitespace-nowrap shrink-0">
                       GAS
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-300 font-medium line-clamp-1 mt-0.5">
+                  <p className="text-[11px] text-slate-300 font-medium truncate mt-0.5">
                     회비 현황 및 입출금 장부
                   </p>
                 </div>
@@ -77,21 +77,21 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
             <button
               id="hub-btn-fee-tab"
               onClick={() => onSelectTab('fee')}
-              className="flex-1 py-1.5 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer"
+              className="flex-1 py-1.5 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
             >
-              <span>회비 탭</span>
-              <ArrowRight className="w-3 h-3" />
+              <span className="whitespace-nowrap">회비 탭</span>
+              <ArrowRight className="w-3 h-3 shrink-0" />
             </button>
             <a
               id="hub-link-fee-external"
               href={HANWOOLIM_EXTERNAL_LINKS.FEE_MANAGEMENT}
               target="_blank"
               rel="noopener noreferrer"
-              className="py-1.5 px-2 rounded-xl bg-slate-700/90 hover:bg-slate-650 text-slate-200 hover:text-white border border-slate-600 text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0"
+              className="py-1.5 px-2 rounded-xl bg-slate-700/90 hover:bg-slate-650 text-slate-200 hover:text-white border border-slate-600 text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
               title="새 탭으로 크게 열기"
             >
-              <span>새 탭</span>
-              <ExternalLink className="w-3 h-3" />
+              <span className="whitespace-nowrap">새 탭</span>
+              <ExternalLink className="w-3 h-3 shrink-0" />
             </a>
           </div>
         </div>
@@ -100,20 +100,20 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
         <div className="group bg-slate-800/80 hover:bg-slate-800 border-2 border-amber-500/40 hover:border-amber-400 rounded-2xl p-3 sm:p-3.5 transition-all duration-200 shadow-md hover:shadow-amber-500/10 flex flex-col justify-between">
           <div>
             <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <Megaphone className="w-5 h-5" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-sm font-black text-white group-hover:text-amber-200 transition-colors">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-nowrap">
+                    <h3 className="text-sm font-black text-white group-hover:text-amber-200 transition-colors whitespace-nowrap">
                       공지 알리미
                     </h3>
-                    <span className="text-[9px] font-black bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-md">
+                    <span className="text-[9px] font-black bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-md whitespace-nowrap shrink-0">
                       공지
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-300 font-medium line-clamp-1 mt-0.5">
+                  <p className="text-[11px] text-slate-300 font-medium truncate mt-0.5">
                     일정, 조 편성 및 필독 공지
                   </p>
                 </div>
@@ -125,21 +125,21 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
             <button
               id="hub-btn-notice-tab"
               onClick={() => onSelectTab('notice')}
-              className="flex-1 py-1.5 px-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer"
+              className="flex-1 py-1.5 px-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
             >
-              <span>공지 탭</span>
-              <ArrowRight className="w-3 h-3" />
+              <span className="whitespace-nowrap">공지 탭</span>
+              <ArrowRight className="w-3 h-3 shrink-0" />
             </button>
             <a
               id="hub-link-notice-external"
               href={HANWOOLIM_EXTERNAL_LINKS.MONTHLY_NOTICE}
               target="_blank"
               rel="noopener noreferrer"
-              className="py-1.5 px-2 rounded-xl bg-slate-700/90 hover:bg-slate-650 text-slate-200 hover:text-white border border-slate-600 text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0"
+              className="py-1.5 px-2 rounded-xl bg-slate-700/90 hover:bg-slate-650 text-slate-200 hover:text-white border border-slate-600 text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
               title="새 탭으로 크게 열기"
             >
-              <span>새 탭</span>
-              <ExternalLink className="w-3 h-3" />
+              <span className="whitespace-nowrap">새 탭</span>
+              <ExternalLink className="w-3 h-3 shrink-0" />
             </a>
           </div>
         </div>
@@ -148,20 +148,20 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
         <div className="group bg-slate-800/80 hover:bg-slate-800 border-2 border-emerald-500/40 hover:border-emerald-400 rounded-2xl p-3 sm:p-3.5 transition-all duration-200 shadow-md hover:shadow-emerald-500/10 flex flex-col justify-between">
           <div>
             <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <Cake className="w-5 h-5" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-sm font-black text-white group-hover:text-emerald-200 transition-colors">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-nowrap">
+                    <h3 className="text-sm font-black text-white group-hover:text-emerald-200 transition-colors whitespace-nowrap">
                       회원 연령 현황
                     </h3>
-                    <span className="text-[9px] font-black bg-emerald-500 text-white px-1.5 py-0.2 rounded-md">
+                    <span className="text-[9px] font-black bg-emerald-500 text-white px-1.5 py-0.2 rounded-md whitespace-nowrap shrink-0">
                       58명
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-300 font-medium line-clamp-1 mt-0.5">
+                  <p className="text-[11px] text-slate-300 font-medium truncate mt-0.5">
                     연도별 명단 & 나이 조견표
                   </p>
                 </div>
@@ -173,19 +173,19 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
             <button
               id="hub-btn-age-tab"
               onClick={() => onSelectTab('age')}
-              className="flex-1 py-1.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer"
+              className="flex-1 py-1.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
             >
-              <span>연령 탭</span>
-              <ArrowRight className="w-3 h-3" />
+              <span className="whitespace-nowrap">연령 탭</span>
+              <ArrowRight className="w-3 h-3 shrink-0" />
             </button>
             {onOpenAgeModal && (
               <button
                 id="hub-btn-age-modal"
                 onClick={onOpenAgeModal}
-                className="py-1.5 px-2 rounded-xl bg-slate-700/90 hover:bg-slate-650 text-slate-200 hover:text-white border border-slate-600 text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0"
+                className="py-1.5 px-2 rounded-xl bg-slate-700/90 hover:bg-slate-650 text-slate-200 hover:text-white border border-slate-600 text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
                 title="팝업창으로 바로 검색하기"
               >
-                <span>팝업</span>
+                <span className="whitespace-nowrap">팝업</span>
               </button>
             )}
           </div>
@@ -195,20 +195,20 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
         <div className="group bg-slate-800/80 hover:bg-slate-800 border-2 border-teal-500/50 hover:border-teal-400 rounded-2xl p-3 sm:p-3.5 transition-all duration-200 shadow-md hover:shadow-teal-500/10 flex flex-col justify-between">
           <div>
             <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <FileSpreadsheet className="w-5 h-5" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-sm font-black text-white group-hover:text-teal-200 transition-colors">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-nowrap">
+                    <h3 className="text-sm font-black text-white group-hover:text-teal-200 transition-colors whitespace-nowrap">
                       한울림 구글 시트
                     </h3>
-                    <span className="text-[9px] font-black bg-teal-400 text-slate-950 px-1.5 py-0.2 rounded-md">
+                    <span className="text-[9px] font-black bg-teal-400 text-slate-950 px-1.5 py-0.2 rounded-md whitespace-nowrap shrink-0">
                       2025 결산
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-300 font-medium line-clamp-1 mt-0.5">
+                  <p className="text-[11px] text-slate-300 font-medium truncate mt-0.5">
                     이월금 1,045만 원 & 회계 시트
                   </p>
                 </div>
@@ -220,10 +220,10 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
             <button
               id="hub-btn-sheet-tab"
               onClick={() => onSelectTab('sheet')}
-              className="flex-1 py-1.5 px-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer"
+              className="flex-1 py-1.5 px-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
             >
-              <span>시트 탭</span>
-              <ArrowRight className="w-3 h-3" />
+              <span className="whitespace-nowrap">시트 탭</span>
+              <ArrowRight className="w-3 h-3 shrink-0" />
             </button>
             {config?.googleSheetUrl ? (
               <a
@@ -231,20 +231,20 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
                 href={config.googleSheetUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="py-1.5 px-2 rounded-xl bg-slate-700/90 hover:bg-slate-650 text-slate-200 hover:text-white border border-slate-600 text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0"
+                className="py-1.5 px-2 rounded-xl bg-slate-700/90 hover:bg-slate-650 text-slate-200 hover:text-white border border-slate-600 text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
                 title="새 탭으로 구글 시트 열기"
               >
-                <span>새 탭</span>
-                <ExternalLink className="w-3 h-3" />
+                <span className="whitespace-nowrap">새 탭</span>
+                <ExternalLink className="w-3 h-3 shrink-0" />
               </a>
             ) : onOpenGoogleSheetModal ? (
               <button
                 id="hub-btn-sheet-modal"
                 onClick={onOpenGoogleSheetModal}
-                className="py-1.5 px-2 rounded-xl bg-slate-700/90 hover:bg-slate-650 text-slate-200 hover:text-white border border-slate-600 text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0"
+                className="py-1.5 px-2 rounded-xl bg-slate-700/90 hover:bg-slate-650 text-slate-200 hover:text-white border border-slate-600 text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
                 title="구글 시트 연동 설정"
               >
-                <span>설정</span>
+                <span className="whitespace-nowrap">설정</span>
               </button>
             ) : null}
           </div>

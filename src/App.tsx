@@ -925,90 +925,90 @@ export default function App() {
       </div>
 
       {/* 3. Mobile Bottom Quick Navigation & Actions Bar */}
-      <div className="fixed bottom-0 inset-x-0 z-20 bg-white/95 backdrop-blur-md border-t border-slate-200 p-2 lg:hidden shadow-xl">
+      <div className="fixed bottom-0 inset-x-0 z-20 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-2 lg:hidden shadow-xl">
         <div className="flex items-center justify-between gap-1.5 max-w-lg mx-auto">
-          {/* Quick Tab Switchers for Mobile */}
-          <div className="flex items-center gap-1">
+          {/* Quick Tab Switchers for Mobile (Smooth horizontal scroll without line wrapping) */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar flex-1 min-w-0 py-0.5">
             <button
               onClick={() => setActiveMainTab('checkin')}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors ${
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
                 activeMainTab === 'checkin'
                   ? 'bg-slate-900 text-lime-400 shadow-sm'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               <span>🎾 출석</span>
-              <span className="font-mono text-[11px] opacity-80">({checkedCount}/{total})</span>
+              <span className="font-mono text-[10px] opacity-80 whitespace-nowrap">({checkedCount}/{total})</span>
             </button>
 
             <button
               onClick={() => setActiveMainTab('fee')}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors ${
+              className={`px-2 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
                 activeMainTab === 'fee'
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200/60'
               }`}
             >
               <CreditCard className="w-3.5 h-3.5" />
-              <span>회비</span>
+              <span className="whitespace-nowrap">회비</span>
             </button>
 
             <button
               onClick={() => setActiveMainTab('notice')}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors ${
+              className={`px-2 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
                 activeMainTab === 'notice'
                   ? 'bg-amber-500 text-slate-950 shadow-sm'
                   : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200/60'
               }`}
             >
               <Megaphone className="w-3.5 h-3.5" />
-              <span>공지</span>
+              <span className="whitespace-nowrap">공지</span>
             </button>
 
             <button
               onClick={() => setActiveMainTab('age')}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors ${
+              className={`px-2 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
                 activeMainTab === 'age'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/60'
               }`}
             >
               <Cake className="w-3.5 h-3.5" />
-              <span>연령</span>
+              <span className="whitespace-nowrap">연령</span>
             </button>
 
             <button
               onClick={() => setActiveMainTab('sheet')}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors ${
+              className={`px-2 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
                 activeMainTab === 'sheet'
                   ? 'bg-teal-600 text-white shadow-sm'
                   : 'bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200/60'
               }`}
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>시트</span>
+              <span className="whitespace-nowrap">시트</span>
             </button>
           </div>
 
           {/* Quick Roster/Sheet Modals on Mobile */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0 border-l border-slate-200 pl-1">
             <button
               onClick={() => setIsAgeModalOpen(true)}
-              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center cursor-pointer"
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center cursor-pointer shrink-0"
               title="회원 연령 팝업"
             >
               <Cake className="w-4 h-4 text-emerald-600" />
             </button>
             <button
               onClick={() => setIsRosterOpen(true)}
-              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center cursor-pointer"
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center cursor-pointer shrink-0"
               title="명단 붙여넣기"
             >
               <Clipboard className="w-4 h-4 text-blue-600" />
             </button>
             <button
               onClick={() => setIsGoogleSheetOpen(true)}
-              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center cursor-pointer"
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center cursor-pointer shrink-0"
               title="구글 시트 연동"
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
