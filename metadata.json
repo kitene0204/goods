@@ -1,6 +1,6 @@
 {
   "name": "테니스 클럽 월례대회 수령 체크 매니저",
-  "description": "테니스 클럽 총무님을 위한 스마트폰 원터치 수령 체크, 초성 검색, 구글 시트(GAS) 자동 동기화 및 엑셀 내보내기 관리 웹앱",
+  "description": "한울림 테니스 클럽 통합 대시보드 - 수령 체크, 회비 관리, 월례대회 공지 알리미, 회원 연령 조견표 및 2025 회계 결산 구글 시트 연동",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

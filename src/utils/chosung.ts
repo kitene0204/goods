@@ -23,6 +23,8 @@ export function getChosung(text: string): string {
   return result;
 }
 
+export const extractChosung = getChosung;
+
 /**
  * Checks if search query matches target text by normal substring or Korean Chosung match.
  */

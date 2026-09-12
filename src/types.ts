@@ -60,3 +60,10 @@ export interface SyncHistoryEntry {
 }
 
 export type FilterTab = 'all' | 'checked' | 'unchecked';
+
+export type MainAppTab = 'checkin' | 'fee' | 'notice' | 'age' | 'sheet';
+
+export const HANWOOLIM_EXTERNAL_LINKS = {
+  FEE_MANAGEMENT: 'https://script.google.com/macros/s/AKfycbw_mAVRbeKDlpb3CKoMO6bwfNhcz5Sj0f0HZPX982YFgXfrRNy3WaLP-xu9O_FPz34/exec',
+  MONTHLY_NOTICE: 'https://kitene0204.github.io/monthly/',
+} as const;

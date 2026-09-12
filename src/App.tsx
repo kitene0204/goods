@@ -4,7 +4,9 @@ import {
   EventConfig, 
   ClubMember, 
   SyncHistoryEntry, 
-  FilterTab 
+  FilterTab,
+  MainAppTab,
+  HANWOOLIM_EXTERNAL_LINKS
 } from './types';
 import { 
   loadEventConfig, 
@@ -23,6 +25,11 @@ import { Header } from './components/Header';
 import { StatsBar } from './components/StatsBar';
 import { SearchBar } from './components/SearchBar';
 import { ParticipantCard } from './components/ParticipantCard';
+import { HanwoolimHubBanner } from './components/HanwoolimHubBanner';
+import { EmbeddedFrameView } from './components/EmbeddedFrameView';
+import { MemberAgeView } from './components/MemberAgeView';
+import { MemberAgeModal } from './components/MemberAgeModal';
+import { HanwoolimSheetView } from './components/HanwoolimSheetView';
 import { RosterModal } from './components/RosterModal';
 import { GoogleSheetModal } from './components/GoogleSheetModal';
 import { LuckyDrawModal } from './components/LuckyDrawModal';
@@ -49,7 +56,11 @@ import {
   ArrowUp,
   RefreshCw,
   Zap,
-  Radio
+  Radio,
+  CreditCard,
+  Megaphone,
+  ExternalLink,
+  Cake
 } from 'lucide-react';
 
 export default function App() {
@@ -59,6 +70,9 @@ export default function App() {
   const [clubMembers, setClubMembers] = useState<ClubMember[]>(() => loadClubMembers());
   const [syncHistory, setSyncHistory] = useState<SyncHistoryEntry[]>(() => loadSyncHistory());
   const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(true);
+
+  // 1.5 Main Navigation Tab (Checkin vs Fee vs Notice vs Age)
+  const [activeMainTab, setActiveMainTab] = useState<MainAppTab>('checkin');
 
   // 2. View & Filter States
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
@@ -73,6 +87,7 @@ export default function App() {
   const [isSupabaseOpen, setIsSupabaseOpen] = useState(false);
   const [isLuckyDrawOpen, setIsLuckyDrawOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAgeModalOpen, setIsAgeModalOpen] = useState(false);
 
   // 4. Toast Notifications
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -426,6 +441,9 @@ export default function App() {
       <Header
         config={config}
         participants={participants}
+        activeTab={activeMainTab}
+        onSelectTab={setActiveMainTab}
+        onOpenAgeModal={() => setIsAgeModalOpen(true)}
         syncStatus={syncStatus}
         lastSyncedAgo={lastSyncedAgoText}
         isPollingActive={isPollingActive}
@@ -445,6 +463,153 @@ export default function App() {
         {/* Left Manager Control Panel Sidebar (Visible on Desktop / Tablet) */}
         <aside className="hidden lg:flex w-72 bg-white border-r border-slate-200 p-5 flex-col justify-between shrink-0">
           <div className="space-y-5">
+            {/* ⭐ 한울림 자주 쓰는 필수 바로가기 (Eye-catching Highlight Card) */}
+            <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 border-2 border-indigo-500/50 rounded-2xl p-3.5 space-y-2.5 text-white shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                  <span className="text-amber-400">⭐</span> 한울림 자주 쓰는 메뉴
+                </span>
+                <span className="text-[9px] bg-indigo-500 text-white px-1.5 py-0.2 rounded font-black">
+                  HOT
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                {/* 1. 회비 관리 */}
+                <div className="flex items-center gap-1">
+                  <button
+                    id="sidebar-fee-btn"
+                    onClick={() => setActiveMainTab('fee')}
+                    className={`flex-1 flex items-center justify-between p-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                      activeMainTab === 'fee'
+                        ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-400'
+                        : 'bg-slate-800/90 hover:bg-slate-800 text-indigo-200 border border-indigo-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 truncate">
+                      <CreditCard className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <span className="truncate">회비 관리 탭</span>
+                    </div>
+                    <span className="text-[9px] bg-indigo-500/40 text-indigo-200 px-1 py-0.2 rounded font-mono">
+                      GAS
+                    </span>
+                  </button>
+                  <a
+                    id="sidebar-fee-external"
+                    href={HANWOOLIM_EXTERNAL_LINKS.FEE_MANAGEMENT}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+                    title="새 탭으로 크게 열기"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+
+                {/* 2. 월례대회 공지 알리미 */}
+                <div className="flex items-center gap-1">
+                  <button
+                    id="sidebar-notice-btn"
+                    onClick={() => setActiveMainTab('notice')}
+                    className={`flex-1 flex items-center justify-between p-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                      activeMainTab === 'notice'
+                        ? 'bg-amber-500 text-slate-950 shadow-sm ring-2 ring-amber-300'
+                        : 'bg-slate-800/90 hover:bg-slate-800 text-amber-200 border border-amber-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Megaphone className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="truncate">공지 알리미</span>
+                    </div>
+                    <span className="text-[9px] bg-amber-400/30 text-amber-300 px-1 py-0.2 rounded font-mono">
+                      공지
+                    </span>
+                  </button>
+                  <a
+                    id="sidebar-notice-external"
+                    href={HANWOOLIM_EXTERNAL_LINKS.MONTHLY_NOTICE}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+                    title="새 탭으로 크게 열기"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+
+                {/* 3. 회원 연령 & 출생연도 */}
+                <div className="flex items-center gap-1">
+                  <button
+                    id="sidebar-age-btn"
+                    onClick={() => setActiveMainTab('age')}
+                    className={`flex-1 flex items-center justify-between p-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                      activeMainTab === 'age'
+                        ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-300'
+                        : 'bg-slate-800/90 hover:bg-slate-800 text-emerald-200 border border-emerald-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Cake className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span className="truncate">회원 연령 현황</span>
+                    </div>
+                    <span className="text-[9px] bg-emerald-500/40 text-emerald-200 px-1 py-0.2 rounded font-mono">
+                      58명
+                    </span>
+                  </button>
+                  <button
+                    id="sidebar-age-modal-btn"
+                    onClick={() => setIsAgeModalOpen(true)}
+                    className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
+                    title="팝업 검색창으로 띄우기"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  </button>
+                </div>
+
+                {/* 4. 한울림 정보 & 2025 결산 구글 시트 (NEW!) */}
+                <div className="flex items-center gap-1">
+                  <button
+                    id="sidebar-sheet-btn"
+                    onClick={() => setActiveMainTab('sheet')}
+                    className={`flex-1 flex items-center justify-between p-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                      activeMainTab === 'sheet'
+                        ? 'bg-teal-600 text-white shadow-sm ring-2 ring-teal-300'
+                        : 'bg-slate-800/90 hover:bg-slate-800 text-teal-200 border border-teal-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 truncate">
+                      <FileSpreadsheet className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                      <span className="truncate">구글 시트 결산</span>
+                    </div>
+                    <span className="text-[9px] bg-teal-400 text-slate-950 px-1 py-0.2 rounded font-mono font-bold">
+                      2025
+                    </span>
+                  </button>
+                  {config.googleSheetUrl ? (
+                    <a
+                      id="sidebar-sheet-external"
+                      href={config.googleSheetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+                      title="새 탭으로 구글 시트 열기"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  ) : (
+                    <button
+                      id="sidebar-sheet-modal-btn"
+                      onClick={() => setIsGoogleSheetOpen(true)}
+                      className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
+                      title="구글 시트 연동 설정"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Event Info Card */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-2">
               <div className="flex items-center justify-between">
@@ -597,169 +762,267 @@ export default function App() {
           </div>
         </aside>
 
-        {/* Main Center Area */}
-        <main className="flex-1 p-4 sm:p-6 flex flex-col space-y-4 pb-28 min-h-[calc(100vh-68px)]">
-          {/* Real-time Progress & Counting Stats Bar */}
-          <StatsBar
-            participants={participants}
+        {/* Conditional View Rendering: External Hub Views vs Member Age View vs Check-in Stream */}
+        {activeMainTab === 'fee' ? (
+          <EmbeddedFrameView
+            type="fee"
+            onBackToCheckin={() => setActiveMainTab('checkin')}
+            onSelectTab={setActiveMainTab}
+          />
+        ) : activeMainTab === 'notice' ? (
+          <EmbeddedFrameView
+            type="notice"
+            onBackToCheckin={() => setActiveMainTab('checkin')}
+            onSelectTab={setActiveMainTab}
+          />
+        ) : activeMainTab === 'age' ? (
+          <MemberAgeView
+            onBackToCheckin={() => setActiveMainTab('checkin')}
+            onSelectTab={setActiveMainTab}
+          />
+        ) : activeMainTab === 'sheet' ? (
+          <HanwoolimSheetView
             config={config}
-            activeFilter={activeFilter}
-            onFilterChange={setActiveFilter}
-            onMarkAllChecked={handleMarkAllChecked}
-            onResetAllChecked={handleResetAllChecked}
+            onUpdateConfig={(updates) => {
+              setConfig((prev) => ({ ...prev, ...updates }));
+              triggerLocalChangePush();
+            }}
+            onBackToCheckin={() => setActiveMainTab('checkin')}
+            onSelectTab={setActiveMainTab}
             onShowToast={showToast}
           />
+        ) : (
+          /* Main Center Area: Check-in Stream */
+          <main className="flex-1 p-4 sm:p-6 flex flex-col space-y-4 pb-28 min-h-[calc(100vh-68px)]">
+            {/* ⭐ Hanwoolim Frequent Tools Hub Banner (Prominently Eye-Catching) */}
+            <HanwoolimHubBanner
+              activeTab={activeMainTab}
+              onSelectTab={setActiveMainTab}
+              onOpenAgeModal={() => setIsAgeModalOpen(true)}
+              config={config}
+              onOpenGoogleSheetModal={() => setIsGoogleSheetOpen(true)}
+            />
 
-          {/* Chosung Search, Sort & View Mode Bar */}
-          <SearchBar
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            selectedDivision={selectedDivision}
-            onDivisionChange={setSelectedDivision}
-            divisions={divisions}
-            totalMatches={filteredParticipants.length}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            sortOrder={sortOrder}
-            onSortOrderChange={setSortOrder}
-          />
+            {/* Real-time Progress & Counting Stats Bar */}
+            <StatsBar
+              participants={participants}
+              config={config}
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+              onMarkAllChecked={handleMarkAllChecked}
+              onResetAllChecked={handleResetAllChecked}
+              onShowToast={showToast}
+            />
 
-          {/* Participant Cards Stream */}
-          <div className="flex-1">
-            {participants.length === 0 ? (
-              /* Empty state when no participants loaded */
-              <div className="text-center py-16 px-4 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4 my-4">
-                <div className="w-16 h-16 rounded-3xl bg-lime-100 text-slate-900 flex items-center justify-center mx-auto text-3xl shadow-sm">
-                  🎾
+            {/* Chosung Search, Sort & View Mode Bar */}
+            <SearchBar
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              selectedDivision={selectedDivision}
+              onDivisionChange={setSelectedDivision}
+              divisions={divisions}
+              totalMatches={filteredParticipants.length}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              sortOrder={sortOrder}
+              onSortOrderChange={setSortOrder}
+            />
+
+            {/* Participant Cards Stream */}
+            <div className="flex-1">
+              {participants.length === 0 ? (
+                /* Empty state when no participants loaded */
+                <div className="text-center py-16 px-4 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4 my-4">
+                  <div className="w-16 h-16 rounded-3xl bg-lime-100 text-slate-900 flex items-center justify-center mx-auto text-3xl shadow-sm">
+                    🎾
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-black text-slate-900">등록된 대회 참가자가 없습니다</h3>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">
+                      카카오톡 투표 명단을 복사해 붙여넣거나, 샘플 명단으로 테스트해보세요.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 pt-2 flex-wrap">
+                    <button
+                      id="empty-paste-btn"
+                      onClick={() => setIsRosterOpen(true)}
+                      className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-lime-400 font-black text-xs sm:text-sm shadow-md flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Clipboard className="w-4 h-4" />
+                      <span>카톡 명단 붙여넣기</span>
+                    </button>
+                    <button
+                      id="empty-load-sample-btn"
+                      onClick={() => {
+                        setParticipants(INITIAL_PARTICIPANTS);
+                        showToast('샘플 참가자 16명 명단을 불러왔습니다.', 'success');
+                        triggerLocalChangePush();
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm border border-slate-300 flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>샘플 16명 불러오기</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <h3 className="text-lg font-black text-slate-900">등록된 대회 참가자가 없습니다</h3>
-                  <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    카카오톡 투표 명단을 복사해 붙여넣거나, 샘플 명단으로 테스트해보세요.
-                  </p>
-                </div>
-                <div className="flex items-center justify-center gap-2 pt-2 flex-wrap">
+              ) : filteredParticipants.length === 0 ? (
+                /* No match in current filter/search */
+                <div className="text-center py-14 px-4 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-3 my-4">
+                  <div className="text-3xl">🔍</div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-black text-slate-900">검색 및 필터 조건에 일치하는 참가자가 없습니다</h4>
+                    <p className="text-xs text-slate-500">초성 검색어나 선택된 부수 필터를 확인해보세요.</p>
+                  </div>
                   <button
-                    id="empty-paste-btn"
-                    onClick={() => setIsRosterOpen(true)}
-                    className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-lime-400 font-black text-xs sm:text-sm shadow-md flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Clipboard className="w-4 h-4" />
-                    <span>카톡 명단 붙여넣기</span>
-                  </button>
-                  <button
-                    id="empty-load-sample-btn"
                     onClick={() => {
-                      setParticipants(INITIAL_PARTICIPANTS);
-                      showToast('샘플 참가자 16명 명단을 불러왔습니다.', 'success');
-                      triggerLocalChangePush();
+                      setSearchTerm('');
+                      setSelectedDivision('all');
+                      setActiveFilter('all');
                     }}
-                    className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm border border-slate-300 flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-lime-400 text-xs font-bold cursor-pointer shadow-sm"
                   >
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span>샘플 16명 불러오기</span>
+                    모든 필터 초기화
                   </button>
                 </div>
-              </div>
-            ) : filteredParticipants.length === 0 ? (
-              /* No match in current filter/search */
-              <div className="text-center py-14 px-4 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-3 my-4">
-                <div className="text-3xl">🔍</div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-black text-slate-900">검색 및 필터 조건에 일치하는 참가자가 없습니다</h4>
-                  <p className="text-xs text-slate-500">초성 검색어나 선택된 부수 필터를 확인해보세요.</p>
+              ) : viewMode === 'grid' ? (
+                /* High-Contrast Grid Card View */
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
+                  {filteredParticipants.map((participant, idx) => (
+                    <ParticipantCard
+                      key={participant.id}
+                      participant={participant}
+                      config={config}
+                      index={idx}
+                      viewMode="grid"
+                      onToggleCheck={handleToggleCheck}
+                      onToggleItem={handleToggleItem}
+                      onUpdateParticipant={handleUpdateParticipant}
+                      onDeleteParticipant={handleDeleteParticipant}
+                    />
+                  ))}
                 </div>
-                <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setSelectedDivision('all');
-                    setActiveFilter('all');
-                  }}
-                  className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-lime-400 text-xs font-bold cursor-pointer shadow-sm"
-                >
-                  모든 필터 초기화
-                </button>
-              </div>
-            ) : viewMode === 'grid' ? (
-              /* High-Contrast Grid Card View */
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
-                {filteredParticipants.map((participant, idx) => (
-                  <ParticipantCard
-                    key={participant.id}
-                    participant={participant}
-                    config={config}
-                    index={idx}
-                    viewMode="grid"
-                    onToggleCheck={handleToggleCheck}
-                    onToggleItem={handleToggleItem}
-                    onUpdateParticipant={handleUpdateParticipant}
-                    onDeleteParticipant={handleDeleteParticipant}
-                  />
-                ))}
-              </div>
-            ) : (
-              /* Detailed List View */
-              <div className="space-y-2.5">
-                {filteredParticipants.map((participant, idx) => (
-                  <ParticipantCard
-                    key={participant.id}
-                    participant={participant}
-                    config={config}
-                    index={idx}
-                    viewMode="list"
-                    onToggleCheck={handleToggleCheck}
-                    onToggleItem={handleToggleItem}
-                    onUpdateParticipant={handleUpdateParticipant}
-                    onDeleteParticipant={handleDeleteParticipant}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </main>
+              ) : (
+                /* Detailed List View */
+                <div className="space-y-2.5">
+                  {filteredParticipants.map((participant, idx) => (
+                    <ParticipantCard
+                      key={participant.id}
+                      participant={participant}
+                      config={config}
+                      index={idx}
+                      viewMode="list"
+                      onToggleCheck={handleToggleCheck}
+                      onToggleItem={handleToggleItem}
+                      onUpdateParticipant={handleUpdateParticipant}
+                      onDeleteParticipant={handleDeleteParticipant}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </main>
+        )}
       </div>
 
-      {/* 3. Mobile Bottom Quick Floating Bar */}
-      <div className="fixed bottom-0 inset-x-0 z-20 bg-white/95 backdrop-blur-md border-t border-slate-200 p-2.5 lg:hidden shadow-xl">
-        <div className="flex items-center justify-between gap-2 max-w-md mx-auto">
-          <div className="flex items-center gap-1.5 text-xs pl-1">
-            <span className="relative flex h-2 w-2 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-lime-500"></span>
-            </span>
-            <span className="font-mono font-black text-slate-900 text-sm">
-              {checkedCount}/{total}
-            </span>
+      {/* 3. Mobile Bottom Quick Navigation & Actions Bar */}
+      <div className="fixed bottom-0 inset-x-0 z-20 bg-white/95 backdrop-blur-md border-t border-slate-200 p-2 lg:hidden shadow-xl">
+        <div className="flex items-center justify-between gap-1.5 max-w-lg mx-auto">
+          {/* Quick Tab Switchers for Mobile */}
+          <div className="flex items-center gap-1">
             <button
-              onClick={pollNow}
-              className="text-[10px] text-slate-500 hover:text-slate-900 flex items-center gap-0.5 font-medium ml-1"
-              title="5초마다 자동 동기화됩니다"
+              onClick={() => setActiveMainTab('checkin')}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors ${
+                activeMainTab === 'checkin'
+                  ? 'bg-slate-900 text-lime-400 shadow-sm'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
             >
-              <span>5초동기화</span>
-              <RefreshCw className={`w-2.5 h-2.5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+              <span>🎾 출석</span>
+              <span className="font-mono text-[11px] opacity-80">({checkedCount}/{total})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveMainTab('fee')}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors ${
+                activeMainTab === 'fee'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200/60'
+              }`}
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>회비</span>
+            </button>
+
+            <button
+              onClick={() => setActiveMainTab('notice')}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors ${
+                activeMainTab === 'notice'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200/60'
+              }`}
+            >
+              <Megaphone className="w-3.5 h-3.5" />
+              <span>공지</span>
+            </button>
+
+            <button
+              onClick={() => setActiveMainTab('age')}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors ${
+                activeMainTab === 'age'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/60'
+              }`}
+            >
+              <Cake className="w-3.5 h-3.5" />
+              <span>연령</span>
+            </button>
+
+            <button
+              onClick={() => setActiveMainTab('sheet')}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition-colors ${
+                activeMainTab === 'sheet'
+                  ? 'bg-teal-600 text-white shadow-sm'
+                  : 'bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200/60'
+              }`}
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>시트</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          {/* Quick Roster/Sheet Modals on Mobile */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsAgeModalOpen(true)}
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center cursor-pointer"
+              title="회원 연령 팝업"
+            >
+              <Cake className="w-4 h-4 text-emerald-600" />
+            </button>
             <button
               onClick={() => setIsRosterOpen(true)}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1 cursor-pointer"
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center cursor-pointer"
+              title="명단 붙여넣기"
             >
-              <Clipboard className="w-3.5 h-3.5 text-blue-600" />
-              <span>명단</span>
+              <Clipboard className="w-4 h-4 text-blue-600" />
             </button>
             <button
               onClick={() => setIsGoogleSheetOpen(true)}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-lime-400 text-xs font-black flex items-center gap-1 shadow-sm cursor-pointer"
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center cursor-pointer"
+              title="구글 시트 연동"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-lime-400" />
-              <span>시트연동</span>
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
             </button>
           </div>
         </div>
       </div>
 
       {/* 4. Modals */}
+      <MemberAgeModal
+        isOpen={isAgeModalOpen}
+        onClose={() => setIsAgeModalOpen(false)}
+      />
+
       <RosterModal
         isOpen={isRosterOpen}
         onClose={() => setIsRosterOpen(false)}

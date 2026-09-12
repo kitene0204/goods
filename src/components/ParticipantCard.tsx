@@ -13,9 +13,11 @@ import {
   Trash2, 
   UserX,
   MessageSquare,
-  Gift
+  Gift,
+  Cake
 } from 'lucide-react';
 import { formatBadgeNote } from '../utils/storage';
+import { findMemberAgeInfo } from '../data/memberAges';
 
 interface ParticipantCardProps {
   participant: Participant;
@@ -45,6 +47,7 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
   const [isProxyDraft, setIsProxyDraft] = useState(participant.isProxy || false);
 
   const displayIndex = String(index + 1).padStart(2, '0');
+  const ageInfo = findMemberAgeInfo(participant.name);
 
   const getDivisionBadgeColor = (division: string) => {
     switch (division) {
@@ -99,9 +102,24 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
 
         {/* Middle Name & Notes (T-Shirt Size / Remark) */}
         <div className="my-1.5 min-w-0">
-          <p className={`text-2xl sm:text-3xl font-black tracking-tight truncate ${participant.checked ? 'text-white' : 'text-slate-900'}`}>
-            {participant.name}
-          </p>
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <p className={`text-2xl sm:text-3xl font-black tracking-tight truncate ${participant.checked ? 'text-white' : 'text-slate-900'}`}>
+              {participant.name}
+            </p>
+            {ageInfo && (
+              <span
+                className={`inline-flex items-center gap-0.5 text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0 shadow-2xs ${
+                  participant.checked
+                    ? 'bg-lime-900/60 text-lime-200 border border-lime-300/30'
+                    : 'bg-indigo-50 text-indigo-800 border border-indigo-200/80'
+                }`}
+                title={`${ageInfo.birthYear}년생 (현재 만 ${ageInfo.age}세)`}
+              >
+                <span>{ageInfo.birthYear}년</span>
+                <span className="opacity-80 font-normal">({ageInfo.age}세)</span>
+              </span>
+            )}
+          </div>
           {(() => {
             const badge = formatBadgeNote(participant.notes);
             if (badge) {
@@ -198,6 +216,16 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
               <span className="font-black text-slate-900 tracking-tight text-lg sm:text-xl">
                 {participant.name}
               </span>
+
+              {ageInfo && (
+                <span
+                  className="inline-flex items-center gap-0.5 text-[11px] font-black px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-800 border border-indigo-200/80 shadow-2xs"
+                  title={`${ageInfo.birthYear}년생 (현재 만 ${ageInfo.age}세)`}
+                >
+                  <span>{ageInfo.birthYear}년</span>
+                  <span className="opacity-80 font-normal">({ageInfo.age}세)</span>
+                </span>
+              )}
 
               {/* Division Badge */}
               <span

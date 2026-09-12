@@ -1,5 +1,5 @@
 import React from 'react';
-import { EventConfig, Participant } from '../types';
+import { EventConfig, Participant, MainAppTab } from '../types';
 import { 
   Trophy, 
   Settings, 
@@ -13,12 +13,19 @@ import {
   MapPin,
   Calendar,
   RefreshCw,
-  Zap
+  Zap,
+  CreditCard,
+  Megaphone,
+  CheckSquare,
+  Cake
 } from 'lucide-react';
 
 interface HeaderProps {
   config: EventConfig;
   participants: Participant[];
+  activeTab: MainAppTab;
+  onSelectTab: (tab: MainAppTab) => void;
+  onOpenAgeModal?: () => void;
   syncStatus?: 'idle' | 'syncing' | 'synced' | 'error';
   lastSyncedAgo?: string;
   isPollingActive?: boolean;
@@ -36,6 +43,8 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   config,
   participants,
+  activeTab,
+  onSelectTab,
   syncStatus = 'synced',
   lastSyncedAgo = '방금 전',
   isPollingActive = true,
@@ -55,126 +64,236 @@ export const Header: React.FC<HeaderProps> = ({
   const percentage = total > 0 ? ((checkedCount / total) * 100).toFixed(1) : '0.0';
 
   return (
-    <nav className="sticky top-0 z-30 bg-slate-900 text-white px-4 sm:px-6 py-3 flex justify-between items-center shadow-lg border-b border-slate-800 transition-colors">
-      {/* Brand & Logo */}
-      <div className="flex items-center space-x-3 min-w-0">
-        <div className="bg-lime-400 p-2 sm:p-2.5 rounded-xl flex items-center justify-center text-slate-900 shadow-md shadow-lime-400/20 shrink-0">
-          <svg className="w-5 h-5 sm:w-6 sm:h-6 text-slate-900 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <h1 className="text-base sm:text-xl font-black tracking-tight italic select-none">
-              TENNIS CHECK-IN <span className="text-lime-400">PRO</span>
-            </h1>
-            <span className="hidden sm:inline-block text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium truncate max-w-[140px]">
-              {config.clubName || '테니스 클럽'}
-            </span>
+    <header className="sticky top-0 z-30 bg-slate-900 text-white shadow-lg border-b border-slate-800 transition-colors">
+      {/* Top Main Nav Bar */}
+      <div className="px-3 sm:px-6 py-2.5 sm:py-3 flex justify-between items-center gap-2">
+        {/* Brand & Logo */}
+        <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+          <button
+            onClick={() => onSelectTab('checkin')}
+            className="bg-lime-400 p-2 sm:p-2.5 rounded-xl flex items-center justify-center text-slate-950 shadow-md shadow-lime-400/20 shrink-0 cursor-pointer active:scale-95 transition-transform"
+            title="한울림 대시보드 메인으로 이동"
+          >
+            <span className="text-base sm:text-lg font-black">🎾</span>
+          </button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                onClick={() => onSelectTab('checkin')}
+                className="text-base sm:text-lg font-black tracking-tight select-none text-left cursor-pointer hover:text-lime-300 transition-colors"
+              >
+                한울림 <span className="text-lime-400">대시보드</span>
+              </button>
+              <span className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-bold truncate max-w-[130px]">
+                {config.clubName || '한울림 테니스클럽'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 truncate hidden xs:block">
+              {config.title || '월례대회 & 회원 관리'}
+            </p>
           </div>
-          <p className="text-xs text-slate-400 truncate hidden xs:block">
-            {config.title || '정기 월례대회'}
-          </p>
+        </div>
+
+        {/* Center: Frequently used feature tabs (Prominent eye-catching buttons) */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* 1. 회비 관리 탭 버튼 */}
+          <button
+            id="header-fee-btn"
+            onClick={() => onSelectTab('fee')}
+            className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95 ${
+              activeTab === 'fee'
+                ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 shadow-indigo-600/30'
+                : 'bg-indigo-950/80 hover:bg-indigo-900 text-indigo-200 border border-indigo-500/40 hover:border-indigo-400'
+            }`}
+            title="한울림 회비 관리 탭 열기"
+          >
+            <CreditCard className="w-4 h-4 text-indigo-300" />
+            <span className="whitespace-nowrap">회비 관리</span>
+            <span className="hidden md:inline-block text-[9px] bg-indigo-500 text-white px-1.5 py-0.2 rounded font-mono font-bold">
+              HOT
+            </span>
+          </button>
+
+          {/* 2. 월례대회 공지 알리미 탭 버튼 */}
+          <button
+            id="header-notice-btn"
+            onClick={() => onSelectTab('notice')}
+            className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95 ${
+              activeTab === 'notice'
+                ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-300 shadow-amber-500/30'
+                : 'bg-amber-950/80 hover:bg-amber-900 text-amber-200 border border-amber-500/40 hover:border-amber-400'
+            }`}
+            title="월례대회 공지 알리미 탭 열기"
+          >
+            <Megaphone className="w-4 h-4 text-amber-300" />
+            <span className="whitespace-nowrap">공지 알리미</span>
+            <span className="hidden md:inline-block text-[9px] bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded font-mono font-bold">
+              공지
+            </span>
+          </button>
+
+          {/* 3. 회원 연령 & 출생연도 탭 버튼 */}
+          <button
+            id="header-age-btn"
+            onClick={() => onSelectTab('age')}
+            className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95 ${
+              activeTab === 'age'
+                ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 shadow-emerald-600/30'
+                : 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-500/40 hover:border-emerald-400'
+            }`}
+            title="회원 연령 및 출생연도 조견표 열기"
+          >
+            <Cake className="w-4 h-4 text-emerald-300" />
+            <span className="whitespace-nowrap">회원 연령</span>
+            <span className="hidden md:inline-block text-[9px] bg-emerald-500 text-white px-1.5 py-0.2 rounded font-mono font-bold">
+              58명
+            </span>
+          </button>
+
+          {/* 4. 한울림 정보 & 2025 결산 구글 시트 탭 버튼 (NEW!) */}
+          <button
+            id="header-sheet-btn"
+            onClick={() => onSelectTab('sheet')}
+            className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95 ${
+              activeTab === 'sheet'
+                ? 'bg-teal-600 text-white ring-2 ring-teal-300 shadow-teal-600/30'
+                : 'bg-teal-950/80 hover:bg-teal-900 text-teal-200 border border-teal-500/40 hover:border-teal-400'
+            }`}
+            title="한울림 구글 시트 및 2025 회계 결산 열기"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-teal-300" />
+            <span className="whitespace-nowrap">구글 시트</span>
+            <span className="hidden md:inline-block text-[9px] bg-teal-400 text-slate-950 px-1.5 py-0.2 rounded font-mono font-bold">
+              결산
+            </span>
+          </button>
+        </div>
+
+        {/* Right: Operational controls */}
+        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+          {/* Check-in Tab button if not currently on checkin */}
+          {activeTab !== 'checkin' && (
+            <button
+              onClick={() => onSelectTab('checkin')}
+              className="bg-lime-400 hover:bg-lime-300 text-slate-950 px-3 py-1.5 sm:py-2 rounded-xl font-black text-xs sm:text-sm transition-all shadow-sm flex items-center gap-1 cursor-pointer active:scale-95"
+            >
+              <CheckSquare className="w-4 h-4" />
+              <span className="hidden xs:inline">대회 체크인</span>
+            </button>
+          )}
+
+          {/* Supabase Button */}
+          <button
+            id="header-supabase-btn"
+            onClick={onOpenSupabase}
+            className="hidden sm:flex bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-xs items-center gap-1.5 cursor-pointer"
+            title="Supabase 실시간 클라우드 설정"
+          >
+            <Zap className="w-3.5 h-3.5 fill-slate-950" />
+            <span className="font-extrabold hidden md:inline">실시간 DB</span>
+          </button>
+
+          {/* Google Sheets Sync */}
+          <button
+            id="header-sheets-btn"
+            onClick={onOpenGoogleSheet}
+            className="hidden md:flex bg-white text-slate-900 px-3 py-1.5 rounded-lg font-bold text-xs hover:bg-slate-200 transition-colors shadow-xs items-center gap-1 cursor-pointer"
+            title="구글 시트 동기화"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+            <span>시트</span>
+          </button>
+
+          {/* Roster Management */}
+          <button
+            id="header-roster-btn"
+            onClick={onOpenRoster}
+            className="hidden lg:flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all cursor-pointer"
+            title="참석자 명단 관리"
+          >
+            <Users className="w-3.5 h-3.5 text-sky-400" />
+            <span>명단</span>
+          </button>
+
+          {/* Lucky Draw */}
+          <button
+            id="header-luckydraw-btn"
+            onClick={onOpenLuckyDraw}
+            className="hidden sm:flex items-center gap-1 p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 text-xs font-bold transition-all cursor-pointer"
+            title="경품 추첨기 (럭키드로우)"
+          >
+            <Gift className="w-4 h-4" />
+          </button>
+
+          {/* Settings Modal Button */}
+          <button
+            id="header-settings-btn"
+            onClick={onOpenSettings}
+            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
+            title="대회 설정"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* Center: Realtime Supabase live pill */}
-      <div className="hidden lg:flex items-center gap-2">
-        <button
-          onClick={onOpenSupabase}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/90 hover:bg-slate-750 border border-emerald-500/30 text-xs font-medium cursor-pointer transition-all shadow-xs group"
-          title="Supabase 실시간 클라우드 DB 연동 상태 (모든 기기 0.1초 동기화)"
-        >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-          </span>
-          <span className="text-emerald-400 font-extrabold flex items-center gap-1">
-            <Zap className="w-3.5 h-3.5 fill-emerald-400" />
-            실시간 클라우드 DB
-          </span>
-          <span className="text-[11px] text-slate-400 group-hover:text-white transition-colors">
-            (0.1초 연동)
-          </span>
-        </button>
-      </div>
+      {/* Navigation Sub-Tabs Bar */}
+      <div className="bg-slate-950/80 px-3 sm:px-6 py-1.5 flex items-center justify-between border-t border-slate-800/80 text-xs">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <button
+            id="subnav-tab-checkin"
+            onClick={() => onSelectTab('checkin')}
+            className={`px-3 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'checkin'
+                ? 'bg-slate-800 text-lime-400 border border-slate-700 shadow-xs'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>🎾 대회 수령 체크인</span>
+            <span className="text-[10px] bg-slate-700/80 text-slate-300 px-1.5 py-0.2 rounded-full font-mono">
+              {checkedCount}/{total}
+            </span>
+          </button>
 
-      {/* Right: Real-time Stats & Actions */}
-      <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
-        {/* Live Status Counter */}
-        <div className="text-right hidden sm:block">
-          <p className="text-[11px] text-slate-400 uppercase font-semibold tracking-wider">현재 수령 현황</p>
-          <p className="text-base sm:text-lg font-black text-lime-400 font-mono">
-            {checkedCount} / {total} <span className="text-xs text-slate-300 font-normal">({percentage}%)</span>
-          </p>
+          <button
+            id="subnav-tab-fee"
+            onClick={() => onSelectTab('fee')}
+            className={`px-3 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'fee'
+                ? 'bg-indigo-900/70 text-indigo-300 border border-indigo-600/60 shadow-xs'
+                : 'text-slate-400 hover:text-indigo-300'
+            }`}
+          >
+            <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
+            <span>💳 회비 관리 탭</span>
+          </button>
+
+          <button
+            id="subnav-tab-notice"
+            onClick={() => onSelectTab('notice')}
+            className={`px-3 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'notice'
+                ? 'bg-amber-900/70 text-amber-300 border border-amber-600/60 shadow-xs'
+                : 'text-slate-400 hover:text-amber-300'
+            }`}
+          >
+            <Megaphone className="w-3.5 h-3.5 text-amber-400" />
+            <span>📢 월례대회 공지 알리미</span>
+          </button>
         </div>
 
-        {/* Supabase Button (Mobile/Tablet visible) */}
-        <button
-          id="header-supabase-btn"
-          onClick={onOpenSupabase}
-          className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3 py-2 rounded-lg font-bold text-xs sm:text-sm transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95"
-          title="Supabase 실시간 클라우드 설정"
-        >
-          <Zap className="w-4 h-4 fill-slate-950" />
-          <span className="font-extrabold hidden xs:inline">실시간 DB</span>
-        </button>
-
-        {/* Primary Sync Button (Google Sheets) */}
-        <button
-          id="header-sheets-btn"
-          onClick={onOpenGoogleSheet}
-          className="bg-white text-slate-900 px-3.5 py-2 rounded-lg font-bold text-xs sm:text-sm hover:bg-slate-200 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95"
-          title="구글 시트 동기화 및 엑셀 다운로드"
-        >
-          <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
-          <span className="font-extrabold">구글 시트</span>
-        </button>
-
-        {/* Roster Management */}
-        <button
-          id="header-roster-btn"
-          onClick={onOpenRoster}
-          className="hidden md:flex items-center gap-1 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all cursor-pointer"
-          title="참석자 명단 관리"
-        >
-          <Users className="w-4 h-4 text-sky-400" />
-          <span>명단관리</span>
-          <span className="text-[11px] bg-slate-700 text-slate-300 px-1.5 py-0.2 rounded-full font-mono">
-            {participants.length}
-          </span>
-        </button>
-
-        {/* Lucky Draw */}
-        <button
-          id="header-luckydraw-btn"
-          onClick={onOpenLuckyDraw}
-          className="hidden sm:flex items-center gap-1 p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 text-xs font-bold transition-all cursor-pointer"
-          title="경품 추첨기 (럭키드로우)"
-        >
-          <Gift className="w-4 h-4" />
-        </button>
-
-        {/* Font Size Toggle */}
-        <button
-          id="header-fontsize-toggle"
-          onClick={onCycleFontSize}
-          className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-mono font-bold transition-colors cursor-pointer"
-          title="글자 크기 조절"
-        >
-          {config.fontSize === 'xlarge' ? '가++' : config.fontSize === 'large' ? '가+' : '가'}
-        </button>
-
-        {/* Settings Modal Button */}
-        <button
-          id="header-settings-btn"
-          onClick={onOpenSettings}
-          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
-          title="대회 설정"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
+        {/* Realtime Supabase status badge */}
+        <div className="hidden md:flex items-center gap-2">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+            </span>
+            <span className="text-emerald-400 font-bold">실시간 동기화</span>
+          </div>
+        </div>
       </div>
-    </nav>
+    </header>
   );
 };
+
