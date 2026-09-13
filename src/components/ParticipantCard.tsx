@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { formatBadgeNote } from '../utils/storage';
 import { findMemberAgeInfo } from '../data/memberAges';
+import { findMemberGradeInfo, getGradeBadgeStyle, AVAILABLE_GRADES } from '../data/memberGrades';
 
 interface ParticipantCardProps {
   participant: Participant;
@@ -48,6 +49,10 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
 
   const displayIndex = String(index + 1).padStart(2, '0');
   const ageInfo = findMemberAgeInfo(participant.name);
+  const gradeInfo = findMemberGradeInfo(participant.name, participant.grade, participant.score);
+
+  const [gradeDraft, setGradeDraft] = useState(participant.grade || gradeInfo?.grade || '');
+  const [scoreDraft, setScoreDraft] = useState<number | string>(participant.score ?? gradeInfo?.score ?? 4);
 
   const getDivisionBadgeColor = (division: string) => {
     switch (division) {
@@ -71,6 +76,8 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
       notes: notesDraft.trim(),
       isProxy: isProxyDraft,
       proxyName: isProxyDraft ? proxyDraft.trim() : '',
+      grade: gradeDraft.trim(),
+      score: scoreDraft,
     });
     setIsEditingNotes(false);
   };
@@ -96,11 +103,11 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
           <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
             participant.checked ? 'bg-lime-600 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'
           }`}>
-            {participant.division || '일반'}
+            {participant.division || (gradeInfo ? gradeInfo.division : '일반')}
           </span>
         </div>
 
-        {/* Middle Name & Notes (T-Shirt Size / Remark) */}
+        {/* Middle Name, Age & Grade (T-Shirt Size / Remark) */}
         <div className="my-1.5 min-w-0">
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <p className={`text-2xl sm:text-3xl font-black tracking-tight truncate ${participant.checked ? 'text-white' : 'text-slate-900'}`}>
@@ -117,6 +124,17 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
               >
                 <span>{ageInfo.birthYear}년</span>
                 <span className="opacity-80 font-normal">({ageInfo.age}세)</span>
+              </span>
+            )}
+            {gradeInfo && (
+              <span
+                className={`inline-flex items-center gap-0.5 text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0 shadow-2xs ${getGradeBadgeStyle(
+                  gradeInfo.tier,
+                  participant.checked
+                )}`}
+                title={`회원 등급: ${gradeInfo.grade} (${gradeInfo.score}점)`}
+              >
+                <span>{gradeInfo.label}</span>
               </span>
             )}
           </div>
@@ -227,13 +245,25 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
                 </span>
               )}
 
+              {gradeInfo && (
+                <span
+                  className={`inline-flex items-center gap-0.5 text-[11px] font-black px-1.5 py-0.5 rounded-md ${getGradeBadgeStyle(
+                    gradeInfo.tier,
+                    false
+                  )}`}
+                  title={`회원 등급: ${gradeInfo.grade} (${gradeInfo.score}점)`}
+                >
+                  <span>{gradeInfo.label}</span>
+                </span>
+              )}
+
               {/* Division Badge */}
               <span
                 className={`text-[11px] px-2 py-0.5 rounded-md border font-bold ${getDivisionBadgeColor(
-                  participant.division
+                  participant.division || (gradeInfo ? gradeInfo.division : '일반')
                 )}`}
               >
-                {participant.division || '일반'}
+                {participant.division || (gradeInfo ? gradeInfo.division : '일반')}
               </span>
 
               {participant.group && (
@@ -380,6 +410,67 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
             )}
           </div>
 
+          {/* Grade & Score Configuration */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-xl bg-white border border-slate-200">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                <span>🏅 회원 등급:</span>
+                {gradeDraft && (
+                  <span className="text-[11px] font-black text-slate-500">
+                    현재: {gradeDraft}({scoreDraft}점)
+                  </span>
+                )}
+              </label>
+              <select
+                id={`grade-select-${participant.id}`}
+                value={gradeDraft}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setGradeDraft(val);
+                  const found = AVAILABLE_GRADES.find((g) => g.grade === val);
+                  if (found) {
+                    setScoreDraft(found.defaultScore);
+                  }
+                }}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-lime-500"
+              >
+                <option value="">등급 선택 안함</option>
+                <optgroup label="은배부">
+                  <option value="은A">은A (기본 4점)</option>
+                  <option value="은B">은B (기본 3점)</option>
+                </optgroup>
+                <optgroup label="금배부">
+                  <option value="금B">금B (기본 7점)</option>
+                  <option value="금C">금C (기본 6점)</option>
+                  <option value="금D">금D (기본 5점)</option>
+                  <option value="금E">금E (기본 5점)</option>
+                </optgroup>
+                <optgroup label="동배부">
+                  <option value="동">동 (기본 2점)</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                <span>⭐ 등급 점수 (1~10점):</span>
+                <span className="text-[11px] font-extrabold text-lime-700">{scoreDraft}점</span>
+              </label>
+              <select
+                id={`score-select-${participant.id}`}
+                value={scoreDraft}
+                onChange={(e) => setScoreDraft(Number(e.target.value))}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-lime-500"
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((s) => (
+                  <option key={s} value={s}>
+                    {s}점
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
               <Edit3 className="w-3 h-3 text-slate-500" /> 단체티 사이즈 / 비고 메모 (예: XL(105), L(100), 라켓백):
@@ -411,10 +502,10 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
             <button
               id={`save-details-btn-${participant.id}`}
               onClick={handleSaveDetails}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-lime-400 text-xs font-bold transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-lime-400 text-xs font-bold transition-colors cursor-pointer shadow-sm"
             >
               <Save className="w-3.5 h-3.5" />
-              <span>메모/대리수령 저장</span>
+              <span>등급/메모 저장</span>
             </button>
           </div>
         </div>

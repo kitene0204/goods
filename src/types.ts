@@ -20,6 +20,8 @@ export interface Participant {
   isProxy?: boolean; // 대리 수령 여부
   proxyName?: string; // 대리 수령자 이름
   raffleWinnerPrize?: string; // 럭키드로우 당첨 상품
+  grade?: string; // e.g. "은A", "금B", "동"
+  score?: number | string; // e.g. 4 or "4점"
 }
 
 export interface ClubMember {
@@ -31,6 +33,8 @@ export interface ClubMember {
   ntrp?: string; // e.g., "3.5", "4.0"
   memberNumber?: string;
   notes?: string; // e.g. 단체티 사이즈 (XL, 105), 비고
+  grade?: string;
+  score?: number | string;
 }
 
 export interface EventConfig {

@@ -19,6 +19,7 @@ import {
   getFlatMembersList, 
   MemberAgeItem 
 } from '../data/memberAges';
+import { findMemberGradeInfo, getGradeBadgeStyle } from '../data/memberGrades';
 import { extractChosung } from '../utils/chosung';
 
 interface MemberAgeModalProps {
@@ -290,14 +291,27 @@ export const MemberAgeModal: React.FC<MemberAgeModalProps> = ({
 
                   {/* Names list */}
                   <div className="flex flex-wrap gap-1.5">
-                    {group.members.map((m) => (
-                      <span
-                        key={m.id}
-                        className="inline-flex items-center px-2.5 py-1 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-900 border border-slate-200 text-xs font-bold text-slate-800 transition-colors"
-                      >
-                        {m.name}
-                      </span>
-                    ))}
+                    {group.members.map((m) => {
+                      const grade = findMemberGradeInfo(m.name);
+                      return (
+                        <span
+                          key={m.id}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-900 border border-slate-200 text-xs font-bold text-slate-800 transition-colors"
+                        >
+                          <span>{m.name}</span>
+                          {grade && (
+                            <span
+                              className={`text-[9px] font-black px-1 rounded ${getGradeBadgeStyle(
+                                grade.tier,
+                                false
+                              )}`}
+                            >
+                              {grade.label}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -305,33 +319,46 @@ export const MemberAgeModal: React.FC<MemberAgeModalProps> = ({
           ) : (
             /* Detailed Members Flat List */
             <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs divide-y divide-slate-100 overflow-hidden">
-              {filteredMembers.map((m, idx) => (
-                <div
-                  key={m.id}
-                  className="p-3 sm:px-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono font-bold text-slate-400 w-6">
-                      {String(idx + 1).padStart(2, '0')}
-                    </span>
-                    <span className="text-sm font-black text-slate-900">
-                      {m.name}
-                    </span>
-                    <span className="text-[11px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
-                      {m.generation}
-                    </span>
-                  </div>
+              {filteredMembers.map((m, idx) => {
+                const grade = findMemberGradeInfo(m.name);
+                return (
+                  <div
+                    key={m.id}
+                    className="p-3 sm:px-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xs font-mono font-bold text-slate-400 w-6">
+                        {String(idx + 1).padStart(2, '0')}
+                      </span>
+                      <span className="text-sm font-black text-slate-900">
+                        {m.name}
+                      </span>
+                      {grade && (
+                        <span
+                          className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${getGradeBadgeStyle(
+                            grade.tier,
+                            false
+                          )}`}
+                        >
+                          {grade.label}
+                        </span>
+                      )}
+                      <span className="text-[11px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                        {m.generation}
+                      </span>
+                    </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-extrabold text-slate-600 font-mono">
-                      {m.birthYear}년생
-                    </span>
-                    <span className="text-xs font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md">
-                      만 {m.currentAge}세
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-extrabold text-slate-600 font-mono">
+                        {m.birthYear}년생
+                      </span>
+                      <span className="text-xs font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md">
+                        만 {m.currentAge}세
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

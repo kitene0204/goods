@@ -20,6 +20,7 @@ import {
   INITIAL_PARTICIPANTS
 } from './utils/storage';
 import { matchesChosungOrText } from './utils/chosung';
+import { findMemberGradeInfo } from './data/memberGrades';
 import { usePollingSync } from './hooks/usePollingSync';
 import { Header } from './components/Header';
 import { StatsBar } from './components/StatsBar';
@@ -196,11 +197,16 @@ export default function App() {
     saveSyncHistory(syncHistory);
   }, [syncHistory]);
 
-  // Distinct divisions from current participants
+  // Distinct divisions from current participants & Hanwoolim official tiers
   const divisions = useMemo(() => {
     const set = new Set<string>();
+    set.add('금배부');
+    set.add('은배부');
+    set.add('동배부');
     participants.forEach((p) => {
-      if (p.division) set.add(p.division);
+      if (p.division && p.division !== '일반' && !set.has(p.division)) {
+        set.add(p.division);
+      }
     });
     return Array.from(set);
   }, [participants]);
@@ -212,16 +218,34 @@ export default function App() {
       if (activeFilter === 'checked' && !p.checked) return false;
       if (activeFilter === 'unchecked' && p.checked) return false;
 
-      // 2. Division Filter
-      if (selectedDivision !== 'all' && p.division !== selectedDivision) return false;
+      // 2. Division Filter (matches division or grade tier)
+      if (selectedDivision !== 'all') {
+        const gradeInfo = findMemberGradeInfo(p.name, p.grade, p.score);
+        const resolvedDiv = p.division || gradeInfo?.division;
+        const matchesDiv =
+          resolvedDiv === selectedDivision ||
+          gradeInfo?.division === selectedDivision ||
+          (selectedDivision === '금배부' && gradeInfo?.tier === 'gold') ||
+          (selectedDivision === '은배부' && gradeInfo?.tier === 'silver') ||
+          (selectedDivision === '동배부' && gradeInfo?.tier === 'bronze');
 
-      // 3. Search Term with Korean Chosung matching
+        if (!matchesDiv) return false;
+      }
+
+      // 3. Search Term with Korean Chosung & Grade matching
       if (searchTerm.trim()) {
+        const gradeInfo = findMemberGradeInfo(p.name, p.grade, p.score);
         const matchesName = matchesChosungOrText(p.name, searchTerm);
         const matchesPhone = p.phone ? p.phone.replace(/[^0-9]/g, '').includes(searchTerm.replace(/[^0-9]/g, '')) : false;
         const matchesGroup = p.group ? matchesChosungOrText(p.group, searchTerm) : false;
         const matchesProxy = p.proxyName ? matchesChosungOrText(p.proxyName, searchTerm) : false;
-        if (!matchesName && !matchesPhone && !matchesGroup && !matchesProxy) {
+        const matchesGrade = gradeInfo
+          ? matchesChosungOrText(gradeInfo.label, searchTerm) ||
+            matchesChosungOrText(gradeInfo.grade, searchTerm) ||
+            `${gradeInfo.score}점`.includes(searchTerm)
+          : false;
+
+        if (!matchesName && !matchesPhone && !matchesGroup && !matchesProxy && !matchesGrade) {
           return false;
         }
       }

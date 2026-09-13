@@ -17,6 +17,8 @@ import {
   Shirt
 } from 'lucide-react';
 import { parsePastedRoster, formatBadgeNote, SAMPLE_CLUB_MEMBERS } from '../utils/storage';
+import { findMemberAgeInfo } from '../data/memberAges';
+import { findMemberGradeInfo, getGradeBadgeStyle } from '../data/memberGrades';
 
 interface RosterModalProps {
   isOpen: boolean;
@@ -645,6 +647,34 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                             {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                           </div>
                           <span className="font-black text-sm text-slate-900 truncate">{member.name || '이름 없음'}</span>
+
+                          {/* Member Age */}
+                          {(() => {
+                            const age = findMemberAgeInfo(member.name);
+                            if (!age) return null;
+                            return (
+                              <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-800 border border-indigo-200 shrink-0">
+                                {age.birthYear}년({age.age}세)
+                              </span>
+                            );
+                          })()}
+
+                          {/* Member Grade */}
+                          {(() => {
+                            const grade = findMemberGradeInfo(member.name, member.grade, member.score);
+                            if (!grade) return null;
+                            return (
+                              <span
+                                className={`text-[10px] font-black px-1.5 py-0.5 rounded ${getGradeBadgeStyle(
+                                  grade.tier,
+                                  false
+                                )} shrink-0`}
+                              >
+                                {grade.label}
+                              </span>
+                            );
+                          })()}
+
                           <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold shrink-0">
                             {member.division || '일반'}
                           </span>

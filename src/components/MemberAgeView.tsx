@@ -20,6 +20,7 @@ import {
   getFlatMembersList, 
   MemberAgeItem 
 } from '../data/memberAges';
+import { findMemberGradeInfo, getGradeBadgeStyle } from '../data/memberGrades';
 import { extractChosung } from '../utils/chosung';
 import { MainAppTab } from '../types';
 
@@ -318,14 +319,27 @@ export const MemberAgeView: React.FC<MemberAgeViewProps> = ({
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {group.members.map((m) => (
-                    <div
-                      key={m.id}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200/80 hover:border-indigo-300 text-sm font-black text-slate-800 hover:text-indigo-900 transition-all"
-                    >
-                      <span>{m.name}</span>
-                    </div>
-                  ))}
+                  {group.members.map((m) => {
+                    const grade = findMemberGradeInfo(m.name);
+                    return (
+                      <div
+                        key={m.id}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200/80 hover:border-indigo-300 text-sm font-black text-slate-800 hover:text-indigo-900 transition-all"
+                      >
+                        <span>{m.name}</span>
+                        {grade && (
+                          <span
+                            className={`text-[10px] font-black px-1.5 py-0.2 rounded ${getGradeBadgeStyle(
+                              grade.tier,
+                              false
+                            )}`}
+                          >
+                            {grade.label}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -339,33 +353,51 @@ export const MemberAgeView: React.FC<MemberAgeViewProps> = ({
                   <tr>
                     <th className="py-3 px-4 w-12 text-center">No</th>
                     <th className="py-3 px-4 font-black text-slate-800">이름</th>
+                    <th className="py-3 px-4 font-black text-slate-800">등급</th>
                     <th className="py-3 px-4 font-black text-slate-800">출생연도</th>
                     <th className="py-3 px-4 font-black text-slate-800">현재 만 나이</th>
                     <th className="py-3 px-4 font-black text-slate-800">연령대</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredMembers.map((m, idx) => (
-                    <tr key={m.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-4 text-center font-mono text-slate-400 font-bold">
-                        {idx + 1}
-                      </td>
-                      <td className="py-3 px-4 font-black text-slate-900 text-sm">
-                        {m.name}
-                      </td>
-                      <td className="py-3 px-4 font-mono font-bold text-slate-700">
-                        {m.birthYear}년생
-                      </td>
-                      <td className="py-3 px-4 font-mono font-black text-amber-700">
-                        만 {m.currentAge}세
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-xs">
-                          {m.generation}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredMembers.map((m, idx) => {
+                    const grade = findMemberGradeInfo(m.name);
+                    return (
+                      <tr key={m.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-3 px-4 text-center font-mono text-slate-400 font-bold">
+                          {idx + 1}
+                        </td>
+                        <td className="py-3 px-4 font-black text-slate-900 text-sm">
+                          {m.name}
+                        </td>
+                        <td className="py-3 px-4">
+                          {grade ? (
+                            <span
+                              className={`inline-flex items-center text-[11px] font-black px-2 py-0.5 rounded-md ${getGradeBadgeStyle(
+                                grade.tier,
+                                false
+                              )}`}
+                            >
+                              {grade.label}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 font-bold text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 font-mono font-bold text-slate-700">
+                          {m.birthYear}년생
+                        </td>
+                        <td className="py-3 px-4 font-mono font-black text-amber-700">
+                          만 {m.currentAge}세
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-xs">
+                            {m.generation}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -1,4 +1,5 @@
 import { EventConfig, Participant, ClubMember, SyncHistoryEntry } from '../types';
+import { findMemberGradeInfo } from '../data/memberGrades';
 
 const STORAGE_KEYS = {
   EVENT_CONFIG: 'tennis_checkin_event_config_v3',
@@ -25,7 +26,7 @@ export const INITIAL_EVENT_CONFIG: EventConfig = {
 };
 
 // 한울림 테니스클럽 전체 회원 DB (가나다 오름차순 정렬 73명)
-export const HANWOOLIM_CLUB_MEMBERS: ClubMember[] = [
+const RAW_HANWOOLIM_CLUB_MEMBERS: ClubMember[] = [
   { id: 'm-1', name: '강명규', phone: '', division: '일반', memberNumber: '001' },
   { id: 'm-2', name: '강석원', phone: '', division: '일반', memberNumber: '002' },
   { id: 'm-3', name: '강운석', phone: '', division: '일반', memberNumber: '003' },
@@ -101,10 +102,20 @@ export const HANWOOLIM_CLUB_MEMBERS: ClubMember[] = [
   { id: 'm-73', name: '홍성완', phone: '', division: '일반', memberNumber: '073' },
 ];
 
+export const HANWOOLIM_CLUB_MEMBERS: ClubMember[] = RAW_HANWOOLIM_CLUB_MEMBERS.map((m) => {
+  const g = findMemberGradeInfo(m.name);
+  return {
+    ...m,
+    grade: g?.grade,
+    score: g?.score,
+    division: g?.division || m.division,
+  };
+});
+
 export const SAMPLE_CLUB_MEMBERS = HANWOOLIM_CLUB_MEMBERS;
 
 // 한울림 회원 명부 기반 기본 대회 참석자 (가나다 오름차순, 비고란 지원)
-export const INITIAL_PARTICIPANTS: Participant[] = [
+const RAW_INITIAL_PARTICIPANTS: Participant[] = [
   {
     id: 'p-1',
     name: '강명규',
@@ -239,6 +250,16 @@ export const INITIAL_PARTICIPANTS: Participant[] = [
   },
 ];
 
+export const INITIAL_PARTICIPANTS: Participant[] = RAW_INITIAL_PARTICIPANTS.map((p) => {
+  const g = findMemberGradeInfo(p.name);
+  return {
+    ...p,
+    grade: g?.grade,
+    score: g?.score,
+    division: g?.division || p.division,
+  };
+});
+
 // Helper functions for LocalStorage
 export function loadEventConfig(): EventConfig {
   try {
@@ -305,11 +326,21 @@ export function loadParticipants(): Participant[] {
             group = '';
           }
 
+          const gradeInfo = findMemberGradeInfo(p.name, p.grade, p.score);
+          const finalGrade = p.grade || gradeInfo?.grade;
+          const finalScore = p.score ?? gradeInfo?.score;
+          const finalDivision = (p.division && p.division !== '일반') 
+            ? p.division 
+            : (gradeInfo?.division || p.division || '일반');
+
           return {
             ...p,
             group,
             items,
             notes,
+            grade: finalGrade,
+            score: finalScore,
+            division: finalDivision,
           };
         });
 
@@ -507,6 +538,18 @@ export function parsePastedRoster(rawText: string, membersMaster: ClubMember[] =
       remaining = remaining.replace(sizeMatch[0], '').trim();
     }
 
+    // 5.5 Extract grade & score (e.g., "은A(4점)", "은A 4점", "은A", "금B(7점)", "동(2점)")
+    let parsedGrade = '';
+    let parsedScore: number | undefined = undefined;
+    const gradeMatch = remaining.match(/[\(\[\{]?(금[B-E]|은[AB]|동)[\)\]\}]?(?:\s*[\(\[]?(\d+)점?[\)\]]?)?/i);
+    if (gradeMatch) {
+      parsedGrade = gradeMatch[1].toUpperCase();
+      if (gradeMatch[2]) {
+        parsedScore = parseInt(gradeMatch[2], 10);
+      }
+      remaining = remaining.replace(gradeMatch[0], '').trim();
+    }
+
     // 6. Clean up name and extra notes
     // If there is extra note after "-" or "/" (e.g. "홍길동 - 라켓백")
     if (remaining.includes('-') || remaining.includes('/')) {
@@ -527,9 +570,16 @@ export function parsePastedRoster(rawText: string, membersMaster: ClubMember[] =
     if (name && name.length >= 2) {
       // Look up member from master DB if exists to enrich info
       const matchedMember = masterList.find((m) => m && m.name === name);
-      const finalDivision = division !== '일반' ? division : (matchedMember?.division || '일반');
+      const gradeInfo = findMemberGradeInfo(name, parsedGrade || matchedMember?.grade, parsedScore ?? matchedMember?.score);
+      const finalDivision = division !== '일반' 
+        ? division 
+        : (matchedMember?.division && matchedMember.division !== '일반')
+        ? matchedMember.division
+        : (gradeInfo?.division || '일반');
       const finalPhone = phone || matchedMember?.phone || '';
       const finalNotes = parsedNotes || matchedMember?.notes || '';
+      const finalGrade = parsedGrade || matchedMember?.grade || gradeInfo?.grade;
+      const finalScore = parsedScore ?? matchedMember?.score ?? gradeInfo?.score;
 
       results.push({
         id: `p-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
@@ -541,6 +591,8 @@ export function parsePastedRoster(rawText: string, membersMaster: ClubMember[] =
         checkedAt: null,
         items: {},
         notes: finalNotes,
+        grade: finalGrade,
+        score: finalScore,
       });
     }
   }
