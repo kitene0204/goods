@@ -27,9 +27,9 @@ export const EmbeddedFrameView: React.FC<EmbeddedFrameViewProps> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   const isFee = type === 'fee';
-  const title = isFee ? '한울림 회비 관리' : '월례대회 공지 알리미';
+  const title = isFee ? '한울림 회비 & 등급 관리' : '월례대회 공지 알리미';
   const subtitle = isFee 
-    ? 'Google Apps Script 기반 회비 입출금 및 납부 현황 장부' 
+    ? 'Google Apps Script 기반 회비 입출금·납부 및 회원 등급 관리 장부' 
     : 'GitHub Pages 기반 한울림 정기 월례대회 공식 공지사항';
   const url = isFee 
     ? HANWOOLIM_EXTERNAL_LINKS.FEE_MANAGEMENT 
@@ -85,7 +85,7 @@ export const EmbeddedFrameView: React.FC<EmbeddedFrameViewProps> = ({
             className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
           >
             {isFee ? <Megaphone className="w-3.5 h-3.5 text-amber-600" /> : <CreditCard className="w-3.5 h-3.5 text-indigo-600" />}
-            <span>{isFee ? '공지 알리미로 전환' : '회비 관리로 전환'}</span>
+            <span>{isFee ? '공지 알리미로 전환' : '회비 & 등급 관리로 전환'}</span>
           </button>
 
           {/* Refresh iframe */}

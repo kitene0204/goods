@@ -475,7 +475,7 @@ export default function App() {
               </div>
 
               <div className="space-y-1.5">
-                {/* 1. 회비 관리 */}
+                {/* 1. 회비 & 등급 관리 */}
                 <div className="flex items-center gap-1">
                   <button
                     id="sidebar-fee-btn"
@@ -488,7 +488,7 @@ export default function App() {
                   >
                     <div className="flex items-center gap-1.5 truncate">
                       <CreditCard className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                      <span className="truncate">회비 관리 탭</span>
+                      <span className="truncate">회비 & 등급 관리</span>
                     </div>
                     <span className="text-[9px] bg-indigo-500/40 text-indigo-200 px-1 py-0.2 rounded font-mono">
                       GAS
@@ -950,7 +950,7 @@ export default function App() {
               }`}
             >
               <CreditCard className="w-3.5 h-3.5" />
-              <span className="whitespace-nowrap">회비</span>
+              <span className="whitespace-nowrap">회비 & 등급</span>
             </button>
 
             <button

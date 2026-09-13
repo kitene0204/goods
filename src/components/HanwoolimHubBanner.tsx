@@ -42,13 +42,13 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
           </div>
         </div>
         <div className="text-[11px] text-slate-400 hidden sm:block">
-          클럽 필수 4대 도구: 회비, 공지, 회원 연령, 회계 결산 구글 시트 바로가기
+          클럽 필수 4대 도구: 회비 & 등급, 공지, 회원 연령, 회계 결산 구글 시트 바로가기
         </div>
       </div>
 
       {/* Four Prominent Quick Hub Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5 relative z-10">
-        {/* 1. 회비 관리 카드 */}
+        {/* 1. 회비 & 등급 관리 카드 */}
         <div className="group bg-slate-800/80 hover:bg-slate-800 border-2 border-indigo-500/40 hover:border-indigo-400 rounded-2xl p-3 sm:p-3.5 transition-all duration-200 shadow-md hover:shadow-indigo-500/10 flex flex-col justify-between">
           <div>
             <div className="flex items-start justify-between gap-2 mb-2">
@@ -59,14 +59,14 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 flex-nowrap">
                     <h3 className="text-sm font-black text-white group-hover:text-indigo-200 transition-colors whitespace-nowrap">
-                      회비 관리
+                      회비 & 등급 관리
                     </h3>
                     <span className="text-[9px] font-black bg-indigo-500 text-white px-1.5 py-0.2 rounded-md whitespace-nowrap shrink-0">
                       GAS
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-300 font-medium truncate mt-0.5">
-                    회비 현황 및 입출금 장부
+                    회비 현황·입출금 장부 & 등급
                   </p>
                 </div>
               </div>
@@ -79,7 +79,7 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
               onClick={() => onSelectTab('fee')}
               className="flex-1 py-1.5 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
             >
-              <span className="whitespace-nowrap">회비 탭</span>
+              <span className="whitespace-nowrap">회비 & 등급 탭</span>
               <ArrowRight className="w-3 h-3 shrink-0" />
             </button>
             <a

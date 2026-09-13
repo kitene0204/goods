@@ -96,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Center: Frequently used feature tabs (Visible on large screens) */}
         <div className="hidden lg:flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* 1. 회비 관리 탭 버튼 */}
+          {/* 1. 회비 & 등급 관리 탭 버튼 */}
           <button
             id="header-fee-btn"
             onClick={() => onSelectTab('fee')}
@@ -105,10 +105,10 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 shadow-indigo-600/30'
                 : 'bg-indigo-950/80 hover:bg-indigo-900 text-indigo-200 border border-indigo-500/40 hover:border-indigo-400'
             }`}
-            title="한울림 회비 관리 탭 열기"
+            title="한울림 회비 & 등급 관리 탭 열기"
           >
             <CreditCard className="w-4 h-4 text-indigo-300" />
-            <span className="whitespace-nowrap">회비 관리</span>
+            <span className="whitespace-nowrap">회비 & 등급 관리</span>
             <span className="text-[9px] bg-indigo-500 text-white px-1.5 py-0.2 rounded font-mono font-bold whitespace-nowrap">
               HOT
             </span>
@@ -265,7 +265,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="whitespace-nowrap">💳 회비 관리</span>
+            <span className="whitespace-nowrap">💳 회비 & 등급 관리</span>
           </button>
 
           <button
