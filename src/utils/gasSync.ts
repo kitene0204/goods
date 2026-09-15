@@ -185,6 +185,23 @@ export const HANWOOLIM_FEE_GAS_CODE = `/**
  */
 
 function doGet(e) {
+  // 웹 앱 화면 로드 또는 API JSON 요청 분기
+  if (e && e.parameter && (e.parameter.action === 'get_roster' || e.parameter.action === 'get_grades' || e.parameter.format === 'json')) {
+    try {
+      var memberGrades = getMemberGradeData();
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        count: memberGrades.length,
+        members: memberGrades
+      })).setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        message: err.toString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('한울림 회비 & 등급 관리')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -198,6 +215,16 @@ function doPost(e) {
       contents = JSON.parse(e.postData.contents);
     }
     var type = contents.type || contents.action || 'income';
+
+    if (type === 'get_roster' || type === 'get_grades') {
+      var memberGrades = getMemberGradeData();
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        count: memberGrades.length,
+        members: memberGrades
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var result = saveData(type, contents);
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
@@ -211,13 +238,13 @@ function doPost(e) {
   }
 }
 
-// 1. 회원 명단 불러오기
+// 1. 회원 명단 불러오기 ('회원명부(정회원)' 우선 조회)
 function getMemberList() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("회비") || ss.getSheetByName("회비현황") || ss.getSheetByName("2025회비") || ss.getSheets()[0];
+  var sheet = ss.getSheetByName("회원명부(정회원)") || ss.getSheetByName("회원명부") || ss.getSheetByName("회비") || ss.getSheetByName("회비현황") || ss.getSheets()[0];
   var values = sheet.getDataRange().getValues();
   
-  var nameCol = findColIndex(values, ['이름', '성명', '회원명']) || 1;
+  var nameCol = findColIndex(values, ['성명', '이름', '회원명']) || 1;
   var names = [];
   for (var r = 1; r < values.length; r++) {
     var name = String(values[r][nameCol] || '').trim();
@@ -228,28 +255,64 @@ function getMemberList() {
   return names.sort();
 }
 
-// 2. 회원 등급 및 점수 목록 불러오기
+// 2. 구글 시트 '회원명부(정회원)' 시트에서 등급(G열) 및 등급점수(F열) 불러오기
 function getMemberGradeData() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("회비") || ss.getSheetByName("회비현황") || ss.getSheetByName("2025회비") || ss.getSheets()[0];
+  // ★ 구글 시트의 "회원명부(정회원)" 시트를 1순위로 조회
+  var sheet = ss.getSheetByName("회원명부(정회원)") || ss.getSheetByName("회원명부") || ss.getSheetByName("회비") || ss.getSheetByName("회비현황") || ss.getSheets()[0];
   var values = sheet.getDataRange().getValues();
   
-  var nameCol = findColIndex(values, ['이름', '성명', '회원명']) || 1;
-  var gradeCol = findColIndex(values, ['등급', '부수', '회원등급']) || 2;
-  var scoreCol = findColIndex(values, ['점수', '포인트', '평점']) || 3;
+  // 컬럼 헤더 행 탐색
+  var headerRowIdx = 0;
+  for (var r = 0; r < Math.min(4, values.length); r++) {
+    if (values[r].some(function(cell) { 
+      var s = String(cell).trim();
+      return s === '성명' || s === '이름' || s.indexOf('등급(점)') !== -1 || s.indexOf('등급(금') !== -1;
+    })) {
+      headerRowIdx = r;
+      break;
+    }
+  }
+  
+  var headers = values[headerRowIdx];
+  // B열: 성명(1), C열: 생년월일(2), D열: 핸드폰(3), F열: 등급점수(5), G열: 등급(6), I열: 비고(8)
+  var nameCol = findColIndexByList(headers, ['성명', '이름', '회원명']) || 1;
+  var scoreCol = findColIndexByList(headers, ['등급(점)', '점수', '포인트', '평점']) || 5; // F열
+  var gradeCol = findColIndexByList(headers, ['등급(금,은,동)', '등급', '부수']) || 6;  // G열
+  var birthCol = findColIndexByList(headers, ['생년월일', '생일', 'YY.MM.DD']) || 2;
+  var phoneCol = findColIndexByList(headers, ['핸드폰번호', '전화번호', '연락처']) || 3;
+  var noteCol = findColIndexByList(headers, ['비고', '메모']) || 8;
   
   var list = [];
-  for (var r = 1; r < values.length; r++) {
+  for (var r = headerRowIdx + 1; r < values.length; r++) {
     var name = String(values[r][nameCol] || '').trim();
     if (name && !name.includes('합계') && !name.includes('총계')) {
+      var rawScore = values[r][scoreCol];
+      var numScore = (rawScore !== '' && rawScore !== null && !isNaN(rawScore)) ? Number(rawScore) : 1;
+      var rawGrade = String(values[r][gradeCol] || '동').trim();
+      if (!rawGrade) rawGrade = '동';
+
       list.push({
         name: name,
-        grade: String(values[r][gradeCol] || '미정').trim(),
-        score: values[r][scoreCol] || 0
+        grade: rawGrade,
+        score: numScore,
+        birth: String(values[r][birthCol] || '').trim(),
+        phone: String(values[r][phoneCol] || '').trim(),
+        note: String(values[r][noteCol] || '').trim()
       });
     }
   }
   return list;
+}
+
+function findColIndexByList(headers, names) {
+  for (var c = 0; c < headers.length; c++) {
+    var h = String(headers[c]).trim();
+    for (var i = 0; i < names.length; i++) {
+      if (h === names[i] || h.indexOf(names[i]) !== -1) return c;
+    }
+  }
+  return null;
 }
 
 // 3. 데이터 저장 (핵심: 1명 또는 여러명 일괄 입력, 50,000 숫자만 저장 & 녹색 셀서식 유지)
@@ -466,6 +529,75 @@ export async function fetchFromGoogleSheets(
     success: true,
     participants: json.participants || [],
     message: `${json.participants?.length || 0}명의 명단을 구글 시트에서 성공적으로 불러왔습니다!`,
+  };
+}
+
+export interface SheetMemberGradeItem {
+  name: string;
+  grade: string;
+  score: number;
+  birth?: string;
+  phone?: string;
+  note?: string;
+  division?: string;
+}
+
+/**
+ * 구글 시트 '회원명부(정회원)' 시트의 F열(등급 점수)과 G열(등급 금,은,동)을 GAS Web App에서 실시간 조회
+ */
+export async function fetchMemberGradesFromGAS(
+  gasUrl: string
+): Promise<{ success: boolean; members?: SheetMemberGradeItem[]; message: string }> {
+  if (!gasUrl || !gasUrl.trim().startsWith('http')) {
+    throw new Error('올바른 구글 앱스 스크립트(GAS) Web App URL을 입력해주세요.');
+  }
+
+  const url = new URL(gasUrl);
+  url.searchParams.set('action', 'get_grades');
+  url.searchParams.set('format', 'json');
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`구글 시트 요청 실패 (상태 코드: ${response.status})`);
+  }
+
+  const text = await response.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error('구글 시트 응답을 해석할 수 없습니다. 스크립트가 신규 버전으로 배포되었는지 확인해주세요.');
+  }
+
+  if (json.status === 'error') {
+    throw new Error(json.message || '회원명부 데이터를 가져오지 못했습니다.');
+  }
+
+  const members: SheetMemberGradeItem[] = (json.members || []).map((m: any) => {
+    const rawGrade = String(m.grade || '동').trim();
+    const rawScore = typeof m.score === 'number' ? m.score : parseInt(String(m.score).replace(/[^0-9]/g, ''), 10) || 1;
+    const div = rawGrade.startsWith('금') ? '금배부' : rawGrade.startsWith('은') ? '은배부' : '동배부';
+    return {
+      name: String(m.name || '').trim(),
+      grade: rawGrade,
+      score: rawScore,
+      division: div,
+      birth: m.birth,
+      phone: m.phone,
+      note: m.note,
+    };
+  });
+
+  return {
+    success: true,
+    members,
+    message: `구글 시트 '회원명부(정회원)'에서 총 ${members.length}명의 등급 및 점수를 성공적으로 가져왔습니다!`,
   };
 }
 

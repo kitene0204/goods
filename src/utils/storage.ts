@@ -302,6 +302,8 @@ export function saveEventConfig(config: EventConfig): void {
 export function loadParticipants(): Participant[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.PARTICIPANTS);
+    const isV5GradesSynced = localStorage.getItem('tennis_checkin_roster_grades_synced_v5') === 'true';
+
     if (saved !== null) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -326,12 +328,26 @@ export function loadParticipants(): Participant[] {
             group = '';
           }
 
-          const gradeInfo = findMemberGradeInfo(p.name, p.grade, p.score);
-          const finalGrade = p.grade || gradeInfo?.grade;
-          const finalScore = p.score ?? gradeInfo?.score;
-          const finalDivision = (p.division && p.division !== '일반') 
-            ? p.division 
-            : (gradeInfo?.division || p.division || '일반');
+          // ★ 구글 시트 '회원명부(정회원)' F열(점수)/G열(등급) 최신 마스터 데이터 우선 적용
+          const officialGrade = findMemberGradeInfo(p.name);
+          let finalGrade = p.grade;
+          let finalScore = p.score;
+          let finalDivision = p.division;
+
+          // v5 업그레이드 전이거나 공식 마스터 데이터가 존재하면 공식 등급으로 자동 동기화
+          if (!isV5GradesSynced || !finalGrade || (officialGrade && (finalGrade === '은A' || finalGrade === '은B' || finalGrade === '금D') && officialGrade.grade !== finalGrade)) {
+            if (officialGrade) {
+              finalGrade = officialGrade.grade;
+              finalScore = officialGrade.score;
+              finalDivision = officialGrade.division;
+            }
+          }
+
+          if (!finalGrade && officialGrade) {
+            finalGrade = officialGrade.grade;
+            finalScore = officialGrade.score;
+            finalDivision = officialGrade.division;
+          }
 
           return {
             ...p,
@@ -340,9 +356,15 @@ export function loadParticipants(): Participant[] {
             notes,
             grade: finalGrade,
             score: finalScore,
-            division: finalDivision,
+            division: finalDivision || '일반',
           };
         });
+
+        // 1회 동기화 완료 마킹
+        if (!isV5GradesSynced) {
+          localStorage.setItem('tennis_checkin_roster_grades_synced_v5', 'true');
+          localStorage.setItem(STORAGE_KEYS.PARTICIPANTS, JSON.stringify(cleaned));
+        }
 
         return [...cleaned].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
       }
@@ -350,7 +372,43 @@ export function loadParticipants(): Participant[] {
   } catch (e) {
     console.error('Failed to load participants:', e);
   }
+  
+  localStorage.setItem('tennis_checkin_roster_grades_synced_v5', 'true');
   return [...INITIAL_PARTICIPANTS].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+}
+
+/**
+ * 구글 시트 '회원명부(정회원)'에서 가져온 등급 및 점수를 전체 참가자 목록에 즉시 일괄 적용
+ */
+export function syncParticipantsWithSheetGrades(
+  participants: Participant[],
+  gradeData: Array<{ name: string; grade: string; score: number | string; division?: string }>
+): Participant[] {
+  const gradeMap = new Map<string, { grade: string; score: number; division: string }>();
+  gradeData.forEach((item) => {
+    if (!item.name) return;
+    const cleanName = item.name.trim();
+    const cleanGrade = (item.grade || '동').trim();
+    const numScore = typeof item.score === 'number' ? item.score : parseInt(String(item.score).replace(/[^0-9]/g, ''), 10) || 1;
+    const div = item.division || (cleanGrade.startsWith('금') ? '금배부' : cleanGrade.startsWith('은') ? '은배부' : '동배부');
+    gradeMap.set(cleanName, { grade: cleanGrade, score: numScore, division: div });
+  });
+
+  const updated = participants.map((p) => {
+    const match = gradeMap.get(p.name.trim());
+    if (match) {
+      return {
+        ...p,
+        grade: match.grade,
+        score: match.score,
+        division: match.division,
+      };
+    }
+    return p;
+  });
+
+  saveParticipants(updated);
+  return updated;
 }
 
 export function saveParticipants(participants: Participant[]): void {

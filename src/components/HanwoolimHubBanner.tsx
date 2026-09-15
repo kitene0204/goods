@@ -9,6 +9,7 @@ interface HanwoolimHubBannerProps {
   config?: EventConfig;
   onOpenGoogleSheetModal?: () => void;
   onOpenBulkPayment?: () => void;
+  onOpenSyncRosterModal?: () => void;
 }
 
 export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
@@ -18,6 +19,7 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
   config,
   onOpenGoogleSheetModal,
   onOpenBulkPayment,
+  onOpenSyncRosterModal,
 }) => {
   return (
     <section 
@@ -43,8 +45,20 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
             </h2>
           </div>
         </div>
-        <div className="text-[11px] text-slate-400 hidden sm:block">
-          클럽 필수 4대 도구: 회비 & 등급, 공지, 회원 연령, 회계 결산 구글 시트 바로가기
+        <div className="flex items-center gap-2">
+          {onOpenSyncRosterModal && (
+            <button
+              onClick={onOpenSyncRosterModal}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-sm transition-all active:scale-95 cursor-pointer"
+              title="구글 시트 '회원명부(정회원)' F열(점수)/G열(등급) 동기화"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>회원명부(F·G열) 등급 동기화</span>
+            </button>
+          )}
+          <div className="text-[11px] text-slate-400 hidden lg:block">
+            회비·등급, 공지, 회원연령, 회계결산 바로가기
+          </div>
         </div>
       </div>
 

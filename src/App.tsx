@@ -32,6 +32,7 @@ import { MemberAgeView } from './components/MemberAgeView';
 import { MemberAgeModal } from './components/MemberAgeModal';
 import { HanwoolimSheetView } from './components/HanwoolimSheetView';
 import { BulkFeePaymentModal } from './components/BulkFeePaymentModal';
+import { SyncRosterFromSheetModal } from './components/SyncRosterFromSheetModal';
 import { RosterModal } from './components/RosterModal';
 import { GoogleSheetModal } from './components/GoogleSheetModal';
 import { LuckyDrawModal } from './components/LuckyDrawModal';
@@ -87,6 +88,7 @@ export default function App() {
   // 3. Modal States
   const [isRosterOpen, setIsRosterOpen] = useState(false);
   const [isGoogleSheetOpen, setIsGoogleSheetOpen] = useState(false);
+  const [isSyncRosterSheetOpen, setIsSyncRosterSheetOpen] = useState(false);
   const [isSupabaseOpen, setIsSupabaseOpen] = useState(false);
   const [isLuckyDrawOpen, setIsLuckyDrawOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -642,6 +644,24 @@ export default function App() {
                     </button>
                   )}
                 </div>
+
+                {/* 5. 구글 시트 회원명부(정회원) 등급/점수(F열/G열) 동기화 (NEW!) */}
+                <div className="flex items-center gap-1">
+                  <button
+                    id="sidebar-sync-roster-btn"
+                    onClick={() => setIsSyncRosterSheetOpen(true)}
+                    className="flex-1 flex items-center justify-between p-2 rounded-xl text-xs font-black transition-all cursor-pointer bg-slate-800/90 hover:bg-slate-800 text-emerald-300 border border-emerald-500/40 hover:border-emerald-400"
+                    title="구글 시트 '회원명부(정회원)' F열(등급점수) & G열(등급 금·은·동) 동기화"
+                  >
+                    <div className="flex items-center gap-1.5 truncate">
+                      <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span className="truncate">시트 등급(F·G열) 동기화</span>
+                    </div>
+                    <span className="text-[9px] bg-emerald-500/40 text-emerald-200 px-1 py-0.2 rounded font-mono font-bold">
+                      F·G열
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -841,6 +861,7 @@ export default function App() {
               config={config}
               onOpenGoogleSheetModal={() => setIsGoogleSheetOpen(true)}
               onOpenBulkPayment={() => setIsBulkFeeModalOpen(true)}
+              onOpenSyncRosterModal={() => setIsSyncRosterSheetOpen(true)}
             />
 
             {/* Real-time Progress & Counting Stats Bar */}
@@ -1078,6 +1099,17 @@ export default function App() {
         onAddParticipant={handleAddParticipant}
         onUpdateClubMembers={setClubMembers}
         onShowToast={showToast}
+      />
+
+      <SyncRosterFromSheetModal
+        isOpen={isSyncRosterSheetOpen}
+        onClose={() => setIsSyncRosterSheetOpen(false)}
+        participants={participants}
+        onUpdateParticipants={(updated) => {
+          handleSetParticipants(updated);
+          showToast(`구글 시트 회원명부(F·G열) 등급이 성공적으로 반영되었습니다!`, 'success');
+        }}
+        eventConfig={config}
       />
 
       <GoogleSheetModal
