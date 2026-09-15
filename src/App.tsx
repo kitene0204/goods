@@ -793,7 +793,7 @@ export default function App() {
 
           {/* Footer Branding */}
           <div className="text-[11px] text-slate-600 pt-4 border-t border-slate-100 font-medium">
-            테니스 클럽 월례대회 매니저 PRO
+            한울림 대시보드 PRO
           </div>
         </aside>
 
