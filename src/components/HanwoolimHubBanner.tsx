@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreditCard, Megaphone, ExternalLink, ArrowRight, Cake, FileSpreadsheet } from 'lucide-react';
+import { CreditCard, Megaphone, ExternalLink, ArrowRight, Cake, FileSpreadsheet, Users } from 'lucide-react';
 import { HANWOOLIM_EXTERNAL_LINKS, MainAppTab, EventConfig } from '../types';
 
 interface HanwoolimHubBannerProps {
@@ -8,6 +8,7 @@ interface HanwoolimHubBannerProps {
   onOpenAgeModal?: () => void;
   config?: EventConfig;
   onOpenGoogleSheetModal?: () => void;
+  onOpenBulkPayment?: () => void;
 }
 
 export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
@@ -16,6 +17,7 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
   onOpenAgeModal,
   config,
   onOpenGoogleSheetModal,
+  onOpenBulkPayment,
 }) => {
   return (
     <section 
@@ -73,26 +75,40 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 pt-2.5 border-t border-slate-700/60 mt-2">
-            <button
-              id="hub-btn-fee-tab"
-              onClick={() => onSelectTab('fee')}
-              className="flex-1 py-1.5 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
-            >
-              <span className="whitespace-nowrap">회비 & 등급 탭</span>
-              <ArrowRight className="w-3 h-3 shrink-0" />
-            </button>
-            <a
-              id="hub-link-fee-external"
-              href={HANWOOLIM_EXTERNAL_LINKS.FEE_MANAGEMENT}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="py-1.5 px-2 rounded-xl bg-slate-700/90 hover:bg-slate-650 text-slate-200 hover:text-white border border-slate-600 text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
-              title="새 탭으로 크게 열기"
-            >
-              <span className="whitespace-nowrap">새 탭</span>
-              <ExternalLink className="w-3 h-3 shrink-0" />
-            </a>
+          <div className="flex flex-col gap-1.5 pt-2.5 border-t border-slate-700/60 mt-2">
+            <div className="flex items-center gap-1.5">
+              <button
+                id="hub-btn-fee-tab"
+                onClick={() => onSelectTab('fee')}
+                className="flex-1 py-1.5 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                <span className="whitespace-nowrap">회비 & 등급 탭</span>
+                <ArrowRight className="w-3 h-3 shrink-0" />
+              </button>
+              <a
+                id="hub-link-fee-external"
+                href={HANWOOLIM_EXTERNAL_LINKS.FEE_MANAGEMENT}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-1.5 px-2 rounded-xl bg-slate-700/90 hover:bg-slate-650 text-slate-200 hover:text-white border border-slate-600 text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
+                title="새 탭으로 크게 열기"
+              >
+                <span className="whitespace-nowrap">새 탭</span>
+                <ExternalLink className="w-3 h-3 shrink-0" />
+              </a>
+            </div>
+
+            {onOpenBulkPayment && (
+              <button
+                id="hub-btn-bulk-fee"
+                onClick={onOpenBulkPayment}
+                className="w-full py-1.5 px-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 text-[11px] font-black flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                title="여러 명의 회원을 선택하여 한 번에 회비 입력"
+              >
+                <Users className="w-3.5 h-3.5 text-indigo-400" />
+                <span>👥 여러명 일괄 회비 입력</span>
+              </button>
+            )}
           </div>
         </div>
 

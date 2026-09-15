@@ -14,9 +14,12 @@ import {
   Info,
   Calendar,
   Sparkles,
-  Link2
+  Link2,
+  Code2,
+  TableProperties
 } from 'lucide-react';
 import { EventConfig, MainAppTab } from '../types';
+import { FeeScriptPatchModal } from './FeeScriptPatchModal';
 
 interface HanwoolimSheetViewProps {
   config: EventConfig;
@@ -24,6 +27,7 @@ interface HanwoolimSheetViewProps {
   onBackToCheckin: () => void;
   onSelectTab: (tab: MainAppTab) => void;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'error') => void;
+  onOpenBulkPayment?: () => void;
 }
 
 export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
@@ -32,10 +36,12 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
   onBackToCheckin,
   onSelectTab,
   onShowToast,
+  onOpenBulkPayment,
 }) => {
   const [sheetUrlInput, setSheetUrlInput] = useState(config.googleSheetUrl || '');
   const [isEditingUrl, setIsEditingUrl] = useState(!config.googleSheetUrl);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isPatchModalOpen, setIsPatchModalOpen] = useState(false);
 
   const handleSaveUrl = () => {
     const trimmed = sheetUrlInput.trim();
@@ -85,6 +91,17 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Fee numeric patch button */}
+          <button
+            id="sheet-fee-patch-header-btn"
+            onClick={() => setIsPatchModalOpen(true)}
+            className="px-3.5 py-2.5 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 font-black text-xs sm:text-sm flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+            title="회비 입력 시 '50,000원' 대신 숫자 50,000 저장 & 녹색 서식 유지 코드"
+          >
+            <Sparkles className="w-4 h-4 text-emerald-400" />
+            <span>회비 50,000 숫자 서식 코드</span>
+          </button>
+
           {config.googleSheetUrl ? (
             <a
               id="sheet-open-external-btn"
@@ -114,6 +131,35 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
             <span>대회 출석부로 복귀</span>
           </button>
         </div>
+      </div>
+
+      {/* Fee Numeric Format Helper Card */}
+      <div className="bg-linear-to-r from-emerald-50 to-teal-50 border border-emerald-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-950 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
+            <TableProperties className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="font-black text-emerald-900 flex items-center gap-2">
+              <span className="text-sm">회비 셀 서식 설정: "50,000원" 텍스트 → 숫자 50,000 변환 & 녹색 서식 유지</span>
+              <span className="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full">
+                SUM/계산 완벽지원
+              </span>
+            </div>
+            <p className="text-[11px] text-emerald-800 mt-0.5">
+              회비 입력 시 '원' 글자 없는 순수 숫자(50,000)로 들어가고 기존 녹색 셀서식이 그대로 유지되는 Apps Script 수정 코드를 복사하실 수 있습니다.
+            </p>
+          </div>
+        </div>
+
+        <button
+          id="sheet-open-fee-patch-btn"
+          onClick={() => setIsPatchModalOpen(true)}
+          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
+        >
+          <Code2 className="w-3.5 h-3.5" />
+          <span>수정 코드 확인 & 복사</span>
+        </button>
       </div>
 
       {/* URL Configuration / Link Editor Card */}
@@ -340,6 +386,14 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
           </button>
         </div>
       )}
+
+      {/* Fee Script Patch Modal */}
+      <FeeScriptPatchModal
+        isOpen={isPatchModalOpen}
+        onClose={() => setIsPatchModalOpen(false)}
+        onShowToast={onShowToast}
+        onOpenBulkPayment={onOpenBulkPayment}
+      />
     </main>
   );
 };

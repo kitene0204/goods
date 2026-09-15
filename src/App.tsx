@@ -31,6 +31,7 @@ import { EmbeddedFrameView } from './components/EmbeddedFrameView';
 import { MemberAgeView } from './components/MemberAgeView';
 import { MemberAgeModal } from './components/MemberAgeModal';
 import { HanwoolimSheetView } from './components/HanwoolimSheetView';
+import { BulkFeePaymentModal } from './components/BulkFeePaymentModal';
 import { RosterModal } from './components/RosterModal';
 import { GoogleSheetModal } from './components/GoogleSheetModal';
 import { LuckyDrawModal } from './components/LuckyDrawModal';
@@ -61,7 +62,8 @@ import {
   CreditCard,
   Megaphone,
   ExternalLink,
-  Cake
+  Cake,
+  Users
 } from 'lucide-react';
 
 export default function App() {
@@ -89,6 +91,7 @@ export default function App() {
   const [isLuckyDrawOpen, setIsLuckyDrawOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAgeModalOpen, setIsAgeModalOpen] = useState(false);
+  const [isBulkFeeModalOpen, setIsBulkFeeModalOpen] = useState(false);
 
   // 4. Toast Notifications
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -518,6 +521,14 @@ export default function App() {
                       GAS
                     </span>
                   </button>
+                  <button
+                    id="sidebar-bulk-fee-btn"
+                    onClick={() => setIsBulkFeeModalOpen(true)}
+                    className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-indigo-300 hover:text-white border border-indigo-500/40 transition-colors cursor-pointer"
+                    title="한 번에 여러 명 회비 입력하기"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                  </button>
                   <a
                     id="sidebar-fee-external"
                     href={HANWOOLIM_EXTERNAL_LINKS.FEE_MANAGEMENT}
@@ -792,12 +803,15 @@ export default function App() {
             type="fee"
             onBackToCheckin={() => setActiveMainTab('checkin')}
             onSelectTab={setActiveMainTab}
+            onShowToast={showToast}
+            onOpenBulkPayment={() => setIsBulkFeeModalOpen(true)}
           />
         ) : activeMainTab === 'notice' ? (
           <EmbeddedFrameView
             type="notice"
             onBackToCheckin={() => setActiveMainTab('checkin')}
             onSelectTab={setActiveMainTab}
+            onShowToast={showToast}
           />
         ) : activeMainTab === 'age' ? (
           <MemberAgeView
@@ -814,6 +828,7 @@ export default function App() {
             onBackToCheckin={() => setActiveMainTab('checkin')}
             onSelectTab={setActiveMainTab}
             onShowToast={showToast}
+            onOpenBulkPayment={() => setIsBulkFeeModalOpen(true)}
           />
         ) : (
           /* Main Center Area: Check-in Stream */
@@ -825,6 +840,7 @@ export default function App() {
               onOpenAgeModal={() => setIsAgeModalOpen(true)}
               config={config}
               onOpenGoogleSheetModal={() => setIsGoogleSheetOpen(true)}
+              onOpenBulkPayment={() => setIsBulkFeeModalOpen(true)}
             />
 
             {/* Real-time Progress & Counting Stats Bar */}
@@ -1042,6 +1058,12 @@ export default function App() {
       </div>
 
       {/* 4. Modals */}
+      <BulkFeePaymentModal
+        isOpen={isBulkFeeModalOpen}
+        onClose={() => setIsBulkFeeModalOpen(false)}
+        onShowToast={showToast}
+      />
+
       <MemberAgeModal
         isOpen={isAgeModalOpen}
         onClose={() => setIsAgeModalOpen(false)}

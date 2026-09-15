@@ -184,6 +184,11 @@ export function findMemberGradeInfo(
 }
 
 /**
+ * Convenient alias for findMemberGradeInfo
+ */
+export const resolveMemberGrade = findMemberGradeInfo;
+
+/**
  * Returns Tailwind CSS styling classes for grade badge based on tier and card checked state
  */
 export function getGradeBadgeStyle(tier: 'gold' | 'silver' | 'bronze', isChecked: boolean = false): string {

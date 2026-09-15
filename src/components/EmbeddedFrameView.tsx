@@ -8,23 +8,32 @@ import {
   Info, 
   CheckCircle2, 
   Globe,
-  Sparkles
+  Sparkles,
+  TableProperties,
+  Code2
 } from 'lucide-react';
 import { HANWOOLIM_EXTERNAL_LINKS, MainAppTab } from '../types';
+import { FeeScriptPatchModal } from './FeeScriptPatchModal';
+import { Users } from 'lucide-react';
 
 interface EmbeddedFrameViewProps {
   type: 'fee' | 'notice';
   onBackToCheckin: () => void;
   onSelectTab: (tab: MainAppTab) => void;
+  onShowToast?: (msg: string, type?: 'success' | 'info' | 'error') => void;
+  onOpenBulkPayment?: () => void;
 }
 
 export const EmbeddedFrameView: React.FC<EmbeddedFrameViewProps> = ({
   type,
   onBackToCheckin,
   onSelectTab,
+  onShowToast = () => {},
+  onOpenBulkPayment,
 }) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPatchModalOpen, setIsPatchModalOpen] = useState(false);
 
   const isFee = type === 'fee';
   const title = isFee ? '한울림 회비 & 등급 관리' : '월례대회 공지 알리미';
@@ -78,6 +87,32 @@ export const EmbeddedFrameView: React.FC<EmbeddedFrameViewProps> = ({
 
         {/* Right: Quick Tab Switcher & External Link Controls */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Bulk payment modal launcher (Only shown in fee management tab) */}
+          {isFee && onOpenBulkPayment && (
+            <button
+              id="fee-bulk-payment-header-btn"
+              onClick={onOpenBulkPayment}
+              className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+              title="여러 명의 회원을 선택하여 한 번에 회비 입력"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>한번에 여러명 회비 입력</span>
+            </button>
+          )}
+
+          {/* Fee numeric patch button (Only shown in fee management tab) */}
+          {isFee && (
+            <button
+              id="fee-patch-code-header-btn"
+              onClick={() => setIsPatchModalOpen(true)}
+              className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer border border-emerald-300 shadow-2xs"
+              title="회비 입력 시 '50,000원' 대신 숫자 50,000 저장 & 녹색 서식 유지 코드"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <span>50,000 숫자 서식 코드</span>
+            </button>
+          )}
+
           {/* Switch to other tab */}
           <button
             id="frame-switch-tab-btn"
@@ -115,6 +150,35 @@ export const EmbeddedFrameView: React.FC<EmbeddedFrameViewProps> = ({
           </a>
         </div>
       </div>
+
+      {/* Fee Numeric Formatting Quick Banner */}
+      {isFee && (
+        <div className="bg-linear-to-r from-emerald-50 to-teal-50/70 border border-emerald-300 rounded-2xl p-3.5 sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-950 shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
+              <TableProperties className="w-4 h-4" />
+            </div>
+            <div className="leading-snug">
+              <div className="font-black text-emerald-900 flex items-center gap-1.5">
+                <span>구글 시트 회비 서식 수정 안내</span>
+                <span className="text-[10px] font-bold bg-emerald-200/80 text-emerald-800 px-1.5 py-0.2 rounded">50,000 숫자 + 녹색 유지</span>
+              </div>
+              <p className="text-[11px] text-emerald-800 mt-0.5">
+                회비 입력 시 <strong>"50,000원"</strong>(텍스트) 대신 <strong>50,000(순수 숫자)</strong>가 입력되고 <strong>녹색 배경</strong>이 유지되도록 하는 Apps Script 수정 코드입니다.
+              </p>
+            </div>
+          </div>
+
+          <button
+            id="fee-patch-code-banner-btn"
+            onClick={() => setIsPatchModalOpen(true)}
+            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shrink-0 flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+          >
+            <Code2 className="w-3.5 h-3.5" />
+            <span>수정 코드 복사하기</span>
+          </button>
+        </div>
+      )}
 
       {/* Security notice banner */}
       <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-3 sm:px-4 flex items-center justify-between gap-3 text-xs text-amber-900">
@@ -164,6 +228,14 @@ export const EmbeddedFrameView: React.FC<EmbeddedFrameViewProps> = ({
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation"
         />
       </div>
+
+      {/* Fee Script Patch Modal */}
+      <FeeScriptPatchModal
+        isOpen={isPatchModalOpen}
+        onClose={() => setIsPatchModalOpen(false)}
+        onShowToast={onShowToast}
+        onOpenBulkPayment={onOpenBulkPayment}
+      />
     </div>
   );
 };
