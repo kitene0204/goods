@@ -10,11 +10,13 @@ import {
   Globe,
   Sparkles,
   TableProperties,
-  Code2
+  Code2,
+  Users,
+  UserCheck,
+  AlertCircle
 } from 'lucide-react';
 import { HANWOOLIM_EXTERNAL_LINKS, MainAppTab } from '../types';
 import { FeeScriptPatchModal } from './FeeScriptPatchModal';
-import { Users } from 'lucide-react';
 
 interface EmbeddedFrameViewProps {
   type: 'fee' | 'notice';
@@ -34,6 +36,7 @@ export const EmbeddedFrameView: React.FC<EmbeddedFrameViewProps> = ({
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isPatchModalOpen, setIsPatchModalOpen] = useState(false);
+  const [patchDefaultTab, setPatchDefaultTab] = useState<'members' | 'quick' | 'bulk' | 'full' | 'guide'>('members');
 
   const isFee = type === 'fee';
   const title = isFee ? '한울림 회비 & 등급 관리' : '월례대회 공지 알리미';
@@ -100,16 +103,35 @@ export const EmbeddedFrameView: React.FC<EmbeddedFrameViewProps> = ({
             </button>
           )}
 
+          {/* Member list fix button */}
+          {isFee && (
+            <button
+              id="fee-member-fix-header-btn"
+              onClick={() => {
+                setPatchDefaultTab('members');
+                setIsPatchModalOpen(true);
+              }}
+              className="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer border border-blue-300 shadow-2xs"
+              title="회원 선택 시 '25년 총입금', '시합구' 나오는 오류 해결 코드"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+              <span>회원선택 오류 해결</span>
+            </button>
+          )}
+
           {/* Fee numeric patch button (Only shown in fee management tab) */}
           {isFee && (
             <button
               id="fee-patch-code-header-btn"
-              onClick={() => setIsPatchModalOpen(true)}
+              onClick={() => {
+                setPatchDefaultTab('quick');
+                setIsPatchModalOpen(true);
+              }}
               className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer border border-emerald-300 shadow-2xs"
               title="회비 입력 시 '50,000원' 대신 숫자 50,000 저장 & 녹색 서식 유지 코드"
             >
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>50,000 숫자 서식 코드</span>
+              <span>50,000 숫자 서식</span>
             </button>
           )}
 
@@ -151,32 +173,47 @@ export const EmbeddedFrameView: React.FC<EmbeddedFrameViewProps> = ({
         </div>
       </div>
 
-      {/* Fee Numeric Formatting Quick Banner */}
+      {/* Fee Numeric Formatting & Member Selection Quick Banner */}
       {isFee && (
-        <div className="bg-linear-to-r from-emerald-50 to-teal-50/70 border border-emerald-300 rounded-2xl p-3.5 sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-950 shadow-2xs">
+        <div className="bg-linear-to-r from-blue-50 via-indigo-50/70 to-emerald-50 border border-blue-200 rounded-2xl p-3.5 sm:px-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-slate-900 shadow-2xs">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
-              <TableProperties className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+              <UserCheck className="w-4 h-4" />
             </div>
             <div className="leading-snug">
-              <div className="font-black text-emerald-900 flex items-center gap-1.5">
-                <span>구글 시트 회비 서식 수정 안내</span>
-                <span className="text-[10px] font-bold bg-emerald-200/80 text-emerald-800 px-1.5 py-0.2 rounded">50,000 숫자 + 녹색 유지</span>
+              <div className="font-black text-slate-900 flex items-center gap-1.5 flex-wrap">
+                <span>회원 선택 시 '25년 총입금', '시합구' 나오는 현상 해결 안내</span>
+                <span className="text-[10px] font-black bg-blue-100 text-blue-800 px-2 py-0.5 rounded">원인 분석 완료</span>
+                <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">50,000 숫자 서식 포함</span>
               </div>
-              <p className="text-[11px] text-emerald-800 mt-0.5">
-                회비 입력 시 <strong>"50,000원"</strong>(텍스트) 대신 <strong>50,000(순수 숫자)</strong>가 입력되고 <strong>녹색 배경</strong>이 유지되도록 하는 Apps Script 수정 코드입니다.
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                구글 시트 상단의 정산/지출 항목이 회원명으로 인식되는 문제로, <strong>회원명부(정회원)</strong> 시트를 우선 조회하도록 하는 <strong>교정 코드</strong>를 복사해 적용하시면 즉시 해결됩니다.
               </p>
             </div>
           </div>
 
-          <button
-            id="fee-patch-code-banner-btn"
-            onClick={() => setIsPatchModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shrink-0 flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
-          >
-            <Code2 className="w-3.5 h-3.5" />
-            <span>수정 코드 복사하기</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              id="fee-patch-code-banner-btn"
+              onClick={() => {
+                setPatchDefaultTab('members');
+                setIsPatchModalOpen(true);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+            >
+              <Code2 className="w-3.5 h-3.5" />
+              <span>회원선택 교정 코드 보기</span>
+            </button>
+            {onOpenBulkPayment && (
+              <button
+                onClick={onOpenBulkPayment}
+                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>앱에서 바로 여러명 입력</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -235,6 +272,7 @@ export const EmbeddedFrameView: React.FC<EmbeddedFrameViewProps> = ({
         onClose={() => setIsPatchModalOpen(false)}
         onShowToast={onShowToast}
         onOpenBulkPayment={onOpenBulkPayment}
+        defaultTab={patchDefaultTab}
       />
     </div>
   );

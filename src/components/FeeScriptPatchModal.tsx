@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Check, 
@@ -11,9 +11,13 @@ import {
   Code2,
   TableProperties,
   Layers,
-  HelpCircle
+  HelpCircle,
+  Users,
+  AlertCircle,
+  UserCheck,
+  ShieldAlert
 } from 'lucide-react';
-import { FEE_NUMERIC_PATCH_SNIPPET, HANWOOLIM_FEE_GAS_CODE } from '../utils/gasSync';
+import { FEE_NUMERIC_PATCH_SNIPPET, HANWOOLIM_FEE_GAS_CODE, MEMBER_LIST_PATCH_SNIPPET } from '../utils/gasSync';
 import { HANWOOLIM_EXTERNAL_LINKS } from '../types';
 
 interface FeeScriptPatchModalProps {
@@ -21,6 +25,7 @@ interface FeeScriptPatchModalProps {
   onClose: () => void;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'error') => void;
   onOpenBulkPayment?: () => void;
+  defaultTab?: 'members' | 'quick' | 'bulk' | 'full' | 'guide';
 }
 
 export const FeeScriptPatchModal: React.FC<FeeScriptPatchModalProps> = ({
@@ -28,13 +33,32 @@ export const FeeScriptPatchModal: React.FC<FeeScriptPatchModalProps> = ({
   onClose,
   onShowToast,
   onOpenBulkPayment,
+  defaultTab = 'members',
 }) => {
-  const [activeTab, setActiveTab] = useState<'quick' | 'bulk' | 'full' | 'guide'>('quick');
+  const [activeTab, setActiveTab] = useState<'members' | 'quick' | 'bulk' | 'full' | 'guide'>(defaultTab);
+  const [copiedMembers, setCopiedMembers] = useState(false);
   const [copiedQuick, setCopiedQuick] = useState(false);
   const [copiedBulk, setCopiedBulk] = useState(false);
   const [copiedFull, setCopiedFull] = useState(false);
 
+  useEffect(() => {
+    if (isOpen && defaultTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [isOpen, defaultTab]);
+
   if (!isOpen) return null;
+
+  const handleCopyMembers = async () => {
+    try {
+      await navigator.clipboard.writeText(MEMBER_LIST_PATCH_SNIPPET);
+      setCopiedMembers(true);
+      onShowToast('회원선택 교정 코드가 클립보드에 복사되었습니다!', 'success');
+      setTimeout(() => setCopiedMembers(false), 2500);
+    } catch {
+      onShowToast('코드 복사에 실패했습니다.', 'error');
+    }
+  };
 
   const handleCopyQuick = async () => {
     try {
@@ -155,6 +179,20 @@ function saveData(type, data) {
         {/* Tab Navigation */}
         <div className="flex border-b border-slate-200 bg-slate-50 px-6 pt-2 shrink-0 overflow-x-auto">
           <button
+            id="fee-patch-tab-members"
+            onClick={() => setActiveTab('members')}
+            className={`pb-2.5 px-3.5 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'members'
+                ? 'border-blue-600 text-blue-700 font-black'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+            <span>회원 선택 오류 해결</span>
+            <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-700">추천</span>
+          </button>
+
+          <button
             id="fee-patch-tab-quick"
             onClick={() => setActiveTab('quick')}
             className={`pb-2.5 px-3.5 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
@@ -219,7 +257,7 @@ function saveData(type, data) {
                     앱 내 [다중 회원 일괄 회비 입력기] 바로 실행
                   </h4>
                   <p className="text-[11px] text-indigo-800">
-                    회원들을 한눈에 검색하고 체크박스로 선택하여 한 번에 회비를 입력할 수 있습니다.
+                    구글 웹앱 대신 이 앱에서 73명 전체 회원을 한눈에 검색·선택하여 오류 없이 즉시 입력할 수 있습니다.
                   </p>
                 </div>
               </div>
@@ -228,10 +266,61 @@ function saveData(type, data) {
                   onClose();
                   onOpenBulkPayment();
                 }}
-                className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shrink-0 cursor-pointer shadow-xs active:scale-95"
+                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shrink-0 cursor-pointer shadow-xs active:scale-95 flex items-center gap-1.5"
               >
-                지금 입력하기
+                <span>지금 입력하기</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
+            </div>
+          )}
+
+          {/* Tab 0: Members Bug Fix (Primary) */}
+          {activeTab === 'members' && (
+            <div className="space-y-3.5">
+              <div className="p-3.5 bg-amber-50/90 border border-amber-200 rounded-2xl text-xs space-y-1.5 text-amber-950">
+                <div className="font-black flex items-center gap-1.5 text-amber-900">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>'25년 총입금(회비 및 스폰)', '시합구'가 회원 목록에 나왔던 원인</span>
+                </div>
+                <p className="text-amber-800 leading-relaxed">
+                  구글 스프레드시트의 <strong>[회비]</strong> 시트 상단에 적힌 지출/정산 항목명(25년 총입금, 시합구, 코트비 등)이 회원 이름 컬럼으로 잘못 인식되었기 때문입니다.
+                </p>
+                <div className="mt-2 pt-2 border-t border-amber-200/80 font-bold text-emerald-800 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>해결책: 아래 교정 코드를 적용하면 '회원명부(정회원)' 시트를 1순위로 조회하고 지출 항목을 100% 자동 제외합니다!</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                    <UserCheck className="w-4 h-4 text-blue-600" />
+                    <span>getMemberList 교정 코드 (Code.gs 내 교체)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Code.gs 파일에서 기존 <code>getMemberList</code> 함수 부분을 찾아 아래 코드로 덮어쓰기하세요.
+                  </p>
+                </div>
+                <button
+                  id="copy-members-snippet-btn"
+                  onClick={handleCopyMembers}
+                  className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer shrink-0"
+                >
+                  {copiedMembers ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedMembers ? '복사 완료!' : '회원선택 교정 코드 복사'}</span>
+                </button>
+              </div>
+
+              <div className="relative rounded-2xl bg-slate-900 text-blue-200 p-4 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800 shadow-inner max-h-72">
+                <pre>{MEMBER_LIST_PATCH_SNIPPET}</pre>
+              </div>
+
+              <div className="p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 space-y-1">
+                <p className="font-bold text-slate-900">⚡ 적용 3초 요약:</p>
+                <p className="text-slate-600">
+                  구글 시트 상단 <strong>[확장 프로그램] → [Apps Script]</strong> → <code>Code.gs</code>의 <code>getMemberList</code>에 붙여넣고 저장(Ctrl+S) → 우측 상단 <strong>[배포] → [배포 관리] → [신규 버전]</strong> 선택 후 배포하면 끝납니다!
+                </p>
+              </div>
             </div>
           )}
 

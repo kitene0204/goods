@@ -171,7 +171,102 @@ cell.setNumberFormat("#,##0");      // 2. 화면에 '50,000'으로 표시되는 
 cell.setBackground("#dcfce7");      // 3. 기존 연두/녹색 배경 셀서식 유지`;
 
 /**
+ * 회원 선택 드롭다운 정상화 패치 스니펫 ('25년 총입금', '시합구' 버그 해결용)
+ */
+export const MEMBER_LIST_PATCH_SNIPPET = `// ★ [회비 입금 시 회원 선택 목록에 '총입금/시합구' 대신 실제 회원 이름이 나오도록 하는 getMemberList 함수]
+// Code.gs 파일 내의 기존 getMemberList 함수를 아래 코드로 교체하세요.
+
+function getMemberList() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // 1순위: '회원명부(정회원)' 시트에서 실제 회원 명단 조회
+  try {
+    var memberData = getMemberGradeData();
+    if (memberData && memberData.length > 0) {
+      var memberNames = [];
+      for (var i = 0; i < memberData.length; i++) {
+        var mName = String(memberData[i].name || '').trim();
+        if (isValidMemberName(mName) && memberNames.indexOf(mName) === -1) {
+          memberNames.push(mName);
+        }
+      }
+      if (memberNames.length > 0) return memberNames.sort();
+    }
+  } catch (e) {}
+
+  // 2순위: 전체 시트 중 '회원명부' 또는 '정회원' 시트 직접 탐색
+  var allSheets = ss.getSheets();
+  var rosterSheet = null;
+  for (var s = 0; s < allSheets.length; s++) {
+    var sName = allSheets[s].getName().replace(/\\s+/g, '');
+    if ((sName.indexOf('회원명부') !== -1 || sName.indexOf('정회원') !== -1) && 
+        sName.indexOf('입출금') === -1 && sName.indexOf('지출') === -1 && sName.indexOf('결산') === -1) {
+      rosterSheet = allSheets[s];
+      break;
+    }
+  }
+
+  if (rosterSheet) {
+    var values = rosterSheet.getDataRange().getValues();
+    var nameCol = findColIndex(values, ['성명', '이름', '회원명']) || 1;
+    var names = [];
+    for (var r = 1; r < values.length; r++) {
+      var n = String(values[r][nameCol] || '').trim();
+      if (isValidMemberName(n) && names.indexOf(n) === -1) {
+        names.push(n);
+      }
+    }
+    if (names.length > 0) return names.sort();
+  }
+
+  // 3순위: '회비' 시트에서 회원 행 탐색 (지출/정산 항목 철저 배제)
+  var feeSheet = ss.getSheetByName("회비") || ss.getSheetByName("회비현황") || ss.getSheetByName("2025회비") || ss.getSheets()[0];
+  var feeValues = feeSheet.getDataRange().getValues();
+  var feeNameCol = findColIndex(feeValues, ['성명', '이름', '회원명']) || 1;
+  var fallbackNames = [];
+  for (var fr = 0; fr < feeValues.length; fr++) {
+    var rawName = String(feeValues[fr][feeNameCol] || '').trim();
+    if (isValidMemberName(rawName) && fallbackNames.indexOf(rawName) === -1) {
+      fallbackNames.push(rawName);
+    }
+  }
+  if (fallbackNames.length > 0) return fallbackNames.sort();
+
+  // 4순위: 한울림 공식 정회원 73명 마스터 목록 (절대 빈 목록 방지)
+  return [
+    "강명규", "강석원", "강운석", "강전성", "고광직", "권용국", "김동찬", "김선경", "김영수", "김영현",
+    "김요셉", "김일태", "김재선", "김준관", "김준동", "김진규", "김태균", "김한준", "김한진", "김현우",
+    "문범준", "문현덕", "박공래", "박광전", "박력", "박의경", "박정태", "배동연", "배정민", "배지혁",
+    "서영진", "손성호", "손승모", "송석운", "송현준", "신영인", "신용욱", "안경민", "안성규", "양원준",
+    "오광석", "오인석", "유길상", "유성식", "윤성원", "이경재", "이상복", "이선행", "이송재", "이승현",
+    "이영만", "이영주", "이원준", "이재흥", "이정민", "이지훈", "이창우", "임선혁", "임영모", "장병국",
+    "장용석", "전호경", "정석균", "정석현", "정재홍", "정종헌", "정진희", "조용현", "최경선", "최양권",
+    "최인식", "한상열", "한영민"
+  ];
+}
+
+// 회비 및 지출 항목(총입금, 시합구, 코트비 등)을 회원 이름에서 100% 필터링
+function isValidMemberName(name) {
+  if (!name) return false;
+  var s = String(name).trim();
+  if (s.length < 2 || s.length > 8) return false;
+  if (/\\d/.test(s)) return false; // 숫자가 있으면 제외 (예: '25년 총입금')
+  
+  var excluded = [
+    '총입금', '입금', '출금', '시합구', '코트비', '스폰', '회비', '이월금', '이월', 
+    '상품', '선불', '운영비', '잔액', '결산', '비고', '성명', '이름', '회원명', 
+    '순번', '연번', '번호', '소계', '합계', '총계', '간식', '회식', '대회', 
+    '리그', '선물', '회장배', '항목', '내역', '구분', '금액', '날짜', '지출'
+  ];
+  for (var i = 0; i < excluded.length; i++) {
+    if (s.indexOf(excluded[i]) !== -1) return false;
+  }
+  return true;
+}`;
+
+/**
  * 한울림 회비 & 등급 관리 전체 Google Apps Script (Code.gs)
+ * - 회원 선택 시 '총입금', '시합구' 버그 완전 해결
  * - 50,000 숫자 저장 및 표시 서식 적용
  * - 녹색 셀서식 유지
  * - 기존 입력된 '50,000원' 문자열을 숫자로 일괄 변환하는 도구 포함
@@ -185,6 +280,8 @@ export const HANWOOLIM_FEE_GAS_CODE = `/**
  */
 
 function doGet(e) {
+  var targetTab = (e && e.parameter && e.parameter.tab) ? e.parameter.tab : 'dashboard';
+
   // 웹 앱 화면 로드 또는 API JSON 요청 분기
   if (e && e.parameter && (e.parameter.action === 'get_roster' || e.parameter.action === 'get_grades' || e.parameter.format === 'json')) {
     try {
@@ -202,9 +299,30 @@ function doGet(e) {
     }
   }
 
-  return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('한울림 회비 & 등급 관리')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  // 1순위: 만약 Apps Script 프로젝트에 Index.html 파일이 있다면 해당 파일 로드
+  try {
+    var template = HtmlService.createTemplateFromFile('Index');
+    template.targetTab = targetTab;
+    return template.evaluate()
+      .setTitle('한울림 회비 & 등급 관리')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  } catch (e1) {
+    try {
+      var template2 = HtmlService.createTemplateFromFile('index');
+      template2.targetTab = targetTab;
+      return template2.evaluate()
+        .setTitle('한울림 회비 & 등급 관리')
+        .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    } catch (e2) {
+      // 2순위: Index.html 파일이 없어도 Code.gs 하나만으로 100% 정상 작동하도록 자체 HTML 내장 렌더링!
+      return HtmlService.createHtmlOutput(renderMainHtml(targetTab))
+        .setTitle('한울림 회비 & 등급 관리')
+        .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
+  }
 }
 
 // 외부 API 및 리액트 웹앱 연동용 POST 핸들러
@@ -238,21 +356,93 @@ function doPost(e) {
   }
 }
 
-// 1. 회원 명단 불러오기 ('회원명부(정회원)' 우선 조회)
+// 1. 회원 명단 불러오기 ('회원명부(정회원)' 시트 우선 조회 & 지출/총입금 항목 철저 배제)
 function getMemberList() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("회원명부(정회원)") || ss.getSheetByName("회원명부") || ss.getSheetByName("회비") || ss.getSheetByName("회비현황") || ss.getSheets()[0];
-  var values = sheet.getDataRange().getValues();
   
-  var nameCol = findColIndex(values, ['성명', '이름', '회원명']) || 1;
-  var names = [];
-  for (var r = 1; r < values.length; r++) {
-    var name = String(values[r][nameCol] || '').trim();
-    if (name && !name.includes('합계') && !name.includes('총계') && names.indexOf(name) === -1) {
-      names.push(name);
+  // 1순위: '회원명부(정회원)' 시트에서 실제 등록 회원 명단 조회
+  try {
+    var memberData = getMemberGradeData();
+    if (memberData && memberData.length > 0) {
+      var memberNames = [];
+      for (var i = 0; i < memberData.length; i++) {
+        var mName = String(memberData[i].name || '').trim();
+        if (isValidMemberName(mName) && memberNames.indexOf(mName) === -1) {
+          memberNames.push(mName);
+        }
+      }
+      if (memberNames.length > 0) return memberNames.sort();
+    }
+  } catch (e) {}
+
+  // 2순위: 전체 시트 중 '회원명부' 또는 '정회원' 시트 직접 탐색
+  var allSheets = ss.getSheets();
+  var rosterSheet = null;
+  for (var s = 0; s < allSheets.length; s++) {
+    var sName = allSheets[s].getName().replace(/\\s+/g, '');
+    if ((sName.indexOf('회원명부') !== -1 || sName.indexOf('정회원') !== -1) && 
+        sName.indexOf('입출금') === -1 && sName.indexOf('지출') === -1 && sName.indexOf('결산') === -1) {
+      rosterSheet = allSheets[s];
+      break;
     }
   }
-  return names.sort();
+
+  if (rosterSheet) {
+    var values = rosterSheet.getDataRange().getValues();
+    var nameCol = findColIndex(values, ['성명', '이름', '회원명']) || 1;
+    var names = [];
+    for (var r = 1; r < values.length; r++) {
+      var n = String(values[r][nameCol] || '').trim();
+      if (isValidMemberName(n) && names.indexOf(n) === -1) {
+        names.push(n);
+      }
+    }
+    if (names.length > 0) return names.sort();
+  }
+
+  // 3순위: '회비' 시트에서 회원 행 탐색 (지출/정산 항목 철저 배제)
+  var feeSheet = ss.getSheetByName("회비") || ss.getSheetByName("회비현황") || ss.getSheetByName("2025회비") || ss.getSheets()[0];
+  var feeValues = feeSheet.getDataRange().getValues();
+  var feeNameCol = findColIndex(feeValues, ['성명', '이름', '회원명']) || 1;
+  var fallbackNames = [];
+  for (var fr = 0; fr < feeValues.length; fr++) {
+    var rawName = String(feeValues[fr][feeNameCol] || '').trim();
+    if (isValidMemberName(rawName) && fallbackNames.indexOf(rawName) === -1) {
+      fallbackNames.push(rawName);
+    }
+  }
+  if (fallbackNames.length > 0) return fallbackNames.sort();
+
+  // 4순위: 한울림 공식 정회원 73명 마스터 목록 (절대 빈 목록 방지)
+  return [
+    "강명규", "강석원", "강운석", "강전성", "고광직", "권용국", "김동찬", "김선경", "김영수", "김영현",
+    "김요셉", "김일태", "김재선", "김준관", "김준동", "김진규", "김태균", "김한준", "김한진", "김현우",
+    "문범준", "문현덕", "박공래", "박광전", "박력", "박의경", "박정태", "배동연", "배정민", "배지혁",
+    "서영진", "손성호", "손승모", "송석운", "송현준", "신영인", "신용욱", "안경민", "안성규", "양원준",
+    "오광석", "오인석", "유길상", "유성식", "윤성원", "이경재", "이상복", "이선행", "이송재", "이승현",
+    "이영만", "이영주", "이원준", "이재흥", "이정민", "이지훈", "이창우", "임선혁", "임영모", "장병국",
+    "장용석", "전호경", "정석균", "정석현", "정재홍", "정종헌", "정진희", "조용현", "최경선", "최양권",
+    "최인식", "한상열", "한영민"
+  ];
+}
+
+// 회비 및 지출 항목(총입금, 시합구, 코트비 등)을 회원 이름에서 100% 필터링
+function isValidMemberName(name) {
+  if (!name) return false;
+  var s = String(name).trim();
+  if (s.length < 2 || s.length > 8) return false;
+  if (/\\d/.test(s)) return false; // 숫자가 있으면 제외 (예: '25년 총입금')
+  
+  var excluded = [
+    '총입금', '입금', '출금', '시합구', '코트비', '스폰', '회비', '이월금', '이월', 
+    '상품', '선불', '운영비', '잔액', '결산', '비고', '성명', '이름', '회원명', 
+    '순번', '연번', '번호', '소계', '합계', '총계', '간식', '회식', '대회', 
+    '리그', '선물', '회장배', '항목', '내역', '구분', '금액', '날짜', '지출'
+  ];
+  for (var i = 0; i < excluded.length; i++) {
+    if (s.indexOf(excluded[i]) !== -1) return false;
+  }
+  return true;
 }
 
 // 2. 구글 시트 '회원명부(정회원)' 시트에서 등급(G열) 및 등급점수(F열) 불러오기
@@ -476,12 +666,314 @@ function onOpen() {
     .addToUi();
 }
 
+// Index.html 파일이 없을 때 Code.gs 하나만으로 화면을 자동 출력하는 자체 내장 HTML
+function renderMainHtml(targetTab) {
+  var initTab = targetTab || 'dashboard';
+  var html = '<!DOCTYPE html>' +
+    '<html lang="ko">' +
+    '<head>' +
+    '<meta charset="UTF-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<title>한울림 회비 & 등급 관리</title>' +
+    '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">' +
+    '<style>' +
+    'body { background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding-bottom: 40px; }' +
+    '.main-card { max-width: 620px; margin: 15px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; overflow: hidden; }' +
+    '.header { background: #1e293b; color: #fff; padding: 18px 20px; text-align: center; }' +
+    '.header h1 { font-size: 1.2rem; font-weight: 800; margin: 0; }' +
+    '.header p { font-size: 0.75rem; color: #94a3b8; margin: 4px 0 0; }' +
+    '.nav-tabs { background: #f1f5f9; padding: 6px 10px 0; border-bottom: 1px solid #e2e8f0; }' +
+    '.nav-tabs .nav-link { color: #64748b; font-weight: 700; font-size: 0.82rem; border: none; padding: 9px 12px; border-radius: 8px 8px 0 0; }' +
+    '.nav-tabs .nav-link.active { color: #0f172a; background: #fff; border-bottom: 2px solid #2563eb; }' +
+    '.tab-content { padding: 20px; }' +
+    '.month-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0 16px; }' +
+    '.month-label { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 2px; text-align: center; font-size: 0.8rem; font-weight: 700; color: #475569; cursor: pointer; user-select: none; transition: all 0.15s ease; }' +
+    '.month-label input { display: none; }' +
+    '.month-label.active { background: #2563eb; color: #fff; border-color: #2563eb; }' +
+    '.badge-grade { font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; }' +
+    '.grade-gold { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }' +
+    '.grade-silver { background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; }' +
+    '.grade-bronze { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }' +
+    '.member-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; }' +
+    '.member-row:hover { background: #f8fafc; }' +
+    '.status-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; margin-bottom: 15px; font-size: 0.85rem; color: #166534; }' +
+    '.btn-submit { border-radius: 10px; font-weight: 800; padding: 11px; width: 100%; font-size: 0.95rem; }' +
+    '</style>' +
+    '</head>' +
+    '<body>' +
+    '<div class="main-card">' +
+    '  <div class="header">' +
+    '    <h1>🎾 한울림 회비 & 등급 관리</h1>' +
+    '    <p>공식 웹앱 시스템</p>' +
+    '  </div>' +
+    '  <ul class="nav nav-tabs" id="mainTab" role="tablist">' +
+    '    <li class="nav-item"><button class="nav-link" id="btn-dashboard" data-bs-toggle="tab" data-bs-target="#tab-dashboard" type="button">📊 등급 현황</button></li>' +
+    '    <li class="nav-item"><button class="nav-link" id="btn-income" data-bs-toggle="tab" data-bs-target="#tab-income" type="button">💰 회비 입금</button></li>' +
+    '    <li class="nav-item"><button class="nav-link" id="btn-expense" data-bs-toggle="tab" data-bs-target="#tab-expense" type="button">💸 지출 등록</button></li>' +
+    '    <li class="nav-item"><button class="nav-link" id="btn-grade" data-bs-toggle="tab" data-bs-target="#tab-grade" type="button">🏅 등급 변경</button></li>' +
+    '  </ul>' +
+    '  <div class="tab-content">' +
+    '    <!-- 등급 현황 (대시보드) -->' +
+    '    <div class="tab-pane fade" id="tab-dashboard">' +
+    '      <div class="row g-2 mb-3">' +
+    '        <div class="col-8"><input type="text" id="searchInput" class="form-control form-control-sm" placeholder="회원 이름 검색..." onkeyup="filterDashboard()"></div>' +
+    '        <div class="col-4">' +
+    '          <select id="gradeFilter" class="form-select form-select-sm" onchange="filterDashboard()">' +
+    '            <option value="전체">전체 등급</option>' +
+    '            <option value="금">금배부</option>' +
+    '            <option value="은">은배부</option>' +
+    '            <option value="동">동배부</option>' +
+    '          </select>' +
+    '        </div>' +
+    '      </div>' +
+    '      <div id="dashboardList"><p class="text-center py-4 text-muted small">회원 명단을 로딩 중입니다...</p></div>' +
+    '    </div>' +
+    '    <!-- 회비 입금 -->' +
+    '    <div class="tab-pane fade" id="tab-income">' +
+    '      <form id="incomeForm">' +
+    '        <div class="mb-3">' +
+    '          <label class="form-label small fw-bold">회원 선택</label>' +
+    '          <select class="form-select" name="name" id="listIncome"><option value="">회원 목록 로딩 중...</option></select>' +
+    '        </div>' +
+    '        <div class="mb-3">' +
+    '          <label class="form-label small fw-bold">입금일자</label>' +
+    '          <input type="date" class="form-control" name="date" id="incomeDate">' +
+    '        </div>' +
+    '        <div class="mb-2">' +
+    '          <label class="form-label small fw-bold">납부 월 선택 (50,000원 / 월)</label>' +
+    '          <div class="month-grid">' +
+    '            <label class="month-label" id="ml_1"><input type="checkbox" name="months" value="1" onchange="toggleMonth(this)">1월</label>' +
+    '            <label class="month-label" id="ml_2"><input type="checkbox" name="months" value="2" onchange="toggleMonth(this)">2월</label>' +
+    '            <label class="month-label" id="ml_3"><input type="checkbox" name="months" value="3" onchange="toggleMonth(this)">3월</label>' +
+    '            <label class="month-label" id="ml_4"><input type="checkbox" name="months" value="4" onchange="toggleMonth(this)">4월</label>' +
+    '            <label class="month-label" id="ml_5"><input type="checkbox" name="months" value="5" onchange="toggleMonth(this)">5월</label>' +
+    '            <label class="month-label" id="ml_6"><input type="checkbox" name="months" value="6" onchange="toggleMonth(this)">6월</label>' +
+    '            <label class="month-label" id="ml_7"><input type="checkbox" name="months" value="7" onchange="toggleMonth(this)">7월</label>' +
+    '            <label class="month-label" id="ml_8"><input type="checkbox" name="months" value="8" onchange="toggleMonth(this)">8월</label>' +
+    '            <label class="month-label" id="ml_9"><input type="checkbox" name="months" value="9" onchange="toggleMonth(this)">9월</label>' +
+    '            <label class="month-label" id="ml_10"><input type="checkbox" name="months" value="10" onchange="toggleMonth(this)">10월</label>' +
+    '            <label class="month-label" id="ml_11"><input type="checkbox" name="months" value="11" onchange="toggleMonth(this)">11월</label>' +
+    '            <label class="month-label" id="ml_12"><input type="checkbox" name="months" value="12" onchange="toggleMonth(this)">12월</label>' +
+    '          </div>' +
+    '        </div>' +
+    '        <div class="mb-3">' +
+    '          <label class="form-label small fw-bold">총 입금액</label>' +
+    '          <input type="text" class="form-control fw-bold text-primary" id="totalAmount" value="50,000" readonly>' +
+    '        </div>' +
+    '        <div class="mb-3">' +
+    '          <label class="form-label small fw-bold">비고 (선택)</label>' +
+    '          <input type="text" class="form-control" name="memo" placeholder="예: 25년 회비 일시납, 찬조금 등">' +
+    '        </div>' +
+    '        <button type="button" class="btn btn-primary btn-submit" id="btnSubmitIncome" onclick="sendData(\'income\')">입금 등록하기</button>' +
+    '      </form>' +
+    '    </div>' +
+    '    <!-- 지출 등록 -->' +
+    '    <div class="tab-pane fade" id="tab-expense">' +
+    '      <form id="expenseForm">' +
+    '        <div class="mb-3">' +
+    '          <label class="form-label small fw-bold">지출 일자</label>' +
+    '          <input type="date" class="form-control" name="date" id="expenseDate">' +
+    '        </div>' +
+    '        <div class="mb-3">' +
+    '          <label class="form-label small fw-bold">지출 항목</label>' +
+    '          <select class="form-select" name="category">' +
+    '            <option value="시합구">시합구</option>' +
+    '            <option value="코트비">코트비</option>' +
+    '            <option value="간식/음료">간식/음료</option>' +
+    '            <option value="식대">식대</option>' +
+    '            <option value="행사비">행사비</option>' +
+    '            <option value="기타">기타</option>' +
+    '          </select>' +
+    '        </div>' +
+    '        <div class="mb-3">' +
+    '          <label class="form-label small fw-bold">사용처 / 대상</label>' +
+    '          <input type="text" class="form-control" name="target" placeholder="예: 동원스포츠, 락커룸">' +
+    '        </div>' +
+    '        <div class="mb-3">' +
+    '          <label class="form-label small fw-bold">지출 금액 (원)</label>' +
+    '          <input type="number" class="form-control" name="amount" placeholder="예: 120000">' +
+    '        </div>' +
+    '        <div class="mb-3">' +
+    '          <label class="form-label small fw-bold">비고</label>' +
+    '          <input type="text" class="form-control" name="memo" placeholder="내용 메모">' +
+    '        </div>' +
+    '        <button type="button" class="btn btn-danger btn-submit" id="btnSubmitExpense" onclick="sendData(\'expense\')">지출 내역 저장</button>' +
+    '      </form>' +
+    '    </div>' +
+    '    <!-- 등급 변경 -->' +
+    '    <div class="tab-pane fade" id="tab-grade">' +
+    '      <form id="gradeForm">' +
+    '        <div class="mb-3">' +
+    '          <label class="form-label small fw-bold">회원 선택</label>' +
+    '          <select class="form-select" name="memberName" id="listGrade" onchange="loadCurrentGrade()"><option value="">선택</option></select>' +
+    '        </div>' +
+    '        <div id="gradeInfo" class="status-box" style="display:none;">' +
+    '          현재 등급점수: <b id="s_curr">1</b>점 | 회원등급: <b id="g_curr">동</b>' +
+    '        </div>' +
+    '        <div class="mb-3">' +
+    '          <label class="form-label small fw-bold">변경 점수 (1~10점)</label>' +
+    '          <select class="form-select" name="newScore" id="newScore">' +
+    '            <option value="1">1점</option><option value="2">2점</option><option value="3">3점</option><option value="4">4점</option><option value="5">5점</option>' +
+    '            <option value="6">6점</option><option value="7">7점</option><option value="8">8점</option><option value="9">9점</option><option value="10">10점</option>' +
+    '          </select>' +
+    '        </div>' +
+    '        <div class="mb-3">' +
+    '          <label class="form-label small fw-bold">변경 등급</label>' +
+    '          <select class="form-select" name="newGrade" id="newGrade">' +
+    '            <optgroup label="금배부">' +
+    '              <option value="금B">금B</option><option value="금C">금C</option><option value="금D">금D</option><option value="금E">금E</option>' +
+    '            </optgroup>' +
+    '            <optgroup label="은배부">' +
+    '              <option value="은A">은A</option><option value="은B">은B</option>' +
+    '            </optgroup>' +
+    '            <optgroup label="동배부">' +
+    '              <option value="동">동</option>' +
+    '            </optgroup>' +
+    '          </select>' +
+    '        </div>' +
+    '        <button type="button" class="btn btn-success btn-submit" id="btnSubmitGrade" onclick="sendData(\'gradeUpdate\')">등급 정보 업데이트</button>' +
+    '      </form>' +
+    '    </div>' +
+    '  </div>' +
+    '</div>' +
+    '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>' +
+    '<script>' +
+    'var rawMemberList = [];' +
+    'var rawGradeData = [];' +
+    'var selectedMonths = [];' +
+    'var initTab = "' + initTab + '";' +
+    'window.onload = function() {' +
+    '  var todayStr = new Date().toISOString().substring(0, 10);' +
+    '  if (document.getElementById("incomeDate")) document.getElementById("incomeDate").value = todayStr;' +
+    '  if (document.getElementById("expenseDate")) document.getElementById("expenseDate").value = todayStr;' +
+    '  var activeBtn = document.getElementById("btn-" + initTab) || document.getElementById("btn-dashboard");' +
+    '  if (activeBtn) new bootstrap.Tab(activeBtn).show();' +
+    '  google.script.run.withSuccessHandler(initMembers).getMemberList();' +
+    '  google.script.run.withSuccessHandler(initGrades).getMemberGradeData();' +
+    '};' +
+    'function initMembers(names) {' +
+    '  rawMemberList = names || [];' +
+    '  var opts = "<option value=\'\'>회원을 선택하세요</option>";' +
+    '  for (var i = 0; i < rawMemberList.length; i++) {' +
+    '    opts += "<option value=\'" + rawMemberList[i] + "\'>" + rawMemberList[i] + "</option>";' +
+    '  }' +
+    '  if (document.getElementById("listIncome")) document.getElementById("listIncome").innerHTML = opts;' +
+    '  if (document.getElementById("listGrade")) document.getElementById("listGrade").innerHTML = opts;' +
+    '}' +
+    'function initGrades(grades) {' +
+    '  rawGradeData = grades || [];' +
+    '  renderDashboard(rawGradeData);' +
+    '}' +
+    'function renderDashboard(list) {' +
+    '  var container = document.getElementById("dashboardList");' +
+    '  if (!container) return;' +
+    '  if (!list || list.length === 0) {' +
+    '    container.innerHTML = "<p class=\'text-center py-4 text-muted small\'>회원 정보가 없습니다.</p>";' +
+    '    return;' +
+    '  }' +
+    '  var html = "";' +
+    '  for (var i = 0; i < list.length; i++) {' +
+    '    var m = list[i];' +
+    '    var gClass = (m.grade || "").indexOf("금") !== -1 ? "grade-gold" : (m.grade || "").indexOf("은") !== -1 ? "grade-silver" : "grade-bronze";' +
+    '    html += "<div class=\'member-row\'>" +' +
+    '      "<div><strong>" + m.name + "</strong> <span class=\'text-muted small\'>(" + (m.score || 1) + "점)</span></div>" +' +
+    '      "<span class=\'badge-grade " + gClass + "\'>" + (m.grade || "동") + "</span>" +' +
+    '    "</div>";' +
+    '  }' +
+    '  container.innerHTML = html;' +
+    '}' +
+    'function filterDashboard() {' +
+    '  var q = (document.getElementById("searchInput").value || "").trim().toLowerCase();' +
+    '  var g = document.getElementById("gradeFilter").value;' +
+    '  var filtered = rawGradeData.filter(function(m) {' +
+    '    var matchName = !q || m.name.toLowerCase().indexOf(q) !== -1;' +
+    '    var matchGrade = g === "전체" || (m.grade && m.grade.indexOf(g) !== -1);' +
+    '    return matchName && matchGrade;' +
+    '  });' +
+    '  renderDashboard(filtered);' +
+    '}' +
+    'function loadCurrentGrade() {' +
+    '  var name = document.getElementById("listGrade").value;' +
+    '  var box = document.getElementById("gradeInfo");' +
+    '  if (!name) { box.style.display = "none"; return; }' +
+    '  var m = rawGradeData.find(function(x) { return x.name === name; });' +
+    '  if (m) {' +
+    '    document.getElementById("s_curr").innerText = m.score || 1;' +
+    '    document.getElementById("g_curr").innerText = m.grade || "동";' +
+    '    document.getElementById("newScore").value = m.score || 1;' +
+    '    document.getElementById("newGrade").value = m.grade || "동";' +
+    '    box.style.display = "block";' +
+    '  } else {' +
+    '    box.style.display = "none";' +
+    '  }' +
+    '}' +
+    'function toggleMonth(el) {' +
+    '  var m = parseInt(el.value, 10);' +
+    '  var parent = document.getElementById("ml_" + m);' +
+    '  if (el.checked) {' +
+    '    if (selectedMonths.indexOf(m) === -1) selectedMonths.push(m);' +
+    '    if (parent) parent.classList.add("active");' +
+    '  } else {' +
+    '    var idx = selectedMonths.indexOf(m);' +
+    '    if (idx !== -1) selectedMonths.splice(idx, 1);' +
+    '    if (parent) parent.classList.remove("active");' +
+    '  }' +
+    '  selectedMonths.sort(function(a,b){return a-b;});' +
+    '  var total = selectedMonths.length > 0 ? selectedMonths.length * 50000 : 50000;' +
+    '  document.getElementById("totalAmount").value = total.toLocaleString() + "원 (" + selectedMonths.length + "개월)";' +
+    '}' +
+    'function sendData(type) {' +
+    '  var data = {};' +
+    '  if (type === "income") {' +
+    '    var name = document.getElementById("listIncome").value;' +
+    '    if (!name) { alert("회원을 선택해주세요."); return; }' +
+    '    if (selectedMonths.length === 0) { alert("납부할 월을 1개 이상 선택해주세요."); return; }' +
+    '    data.name = name;' +
+    '    data.date = document.getElementById("incomeDate").value;' +
+    '    data.months = selectedMonths;' +
+    '    data.memo = document.querySelector("#incomeForm input[name=memo]").value;' +
+    '  } else if (type === "expense") {' +
+    '    data.date = document.getElementById("expenseDate").value;' +
+    '    data.category = document.querySelector("#expenseForm select[name=category]").value;' +
+    '    data.target = document.querySelector("#expenseForm input[name=target]").value;' +
+    '    data.amount = document.querySelector("#expenseForm input[name=amount]").value;' +
+    '    data.memo = document.querySelector("#expenseForm input[name=memo]").value;' +
+    '    if (!data.amount) { alert("지출 금액을 입력해주세요."); return; }' +
+    '  } else if (type === "gradeUpdate") {' +
+    '    var mName = document.getElementById("listGrade").value;' +
+    '    if (!mName) { alert("회원을 선택해주세요."); return; }' +
+    '    data.memberName = mName;' +
+    '    data.newScore = document.getElementById("newScore").value;' +
+    '    data.newGrade = document.getElementById("newGrade").value;' +
+    '  }' +
+    '  var btn = event.target;' +
+    '  var orgText = btn.innerText;' +
+    '  btn.disabled = true;' +
+    '  btn.innerText = "처리 중...";' +
+    '  google.script.run' +
+    '    .withSuccessHandler(function(res) {' +
+    '      alert(res);' +
+    '      location.reload();' +
+    '    })' +
+    '    .withFailureHandler(function(err) {' +
+    '      alert("오류 발생: " + err);' +
+    '      btn.disabled = false;' +
+    '      btn.innerText = orgText;' +
+    '    })' +
+    '    .saveData(type, data);' +
+    '}' +
+    '</script>' +
+    '</body>' +
+    '</html>';
+  return html;
+}
+
 function findColIndex(values, possibleNames) {
-  for (var r = 0; r < Math.min(3, values.length); r++) {
+  for (var r = 0; r < Math.min(6, values.length); r++) {
     for (var c = 0; c < values[r].length; c++) {
       var val = String(values[r][c]).trim();
       for (var i = 0; i < possibleNames.length; i++) {
-        if (val === possibleNames[i]) return c;
+        if (val === possibleNames[i] || val.indexOf(possibleNames[i]) !== -1) return c;
       }
     }
   }
