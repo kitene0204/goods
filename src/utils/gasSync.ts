@@ -262,7 +262,215 @@ function isValidMemberName(name) {
     if (s.indexOf(excluded[i]) !== -1) return false;
   }
   return true;
-}`;
+}
+
+// ★ [다중/단일 회원 자동 인식 + 50,000 숫자 서식 + 김영현/권용국 등 누락회원 자동 추가 saveData 함수]
+function saveData(arg1, arg2) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 매개변수 유연 처리 (saveData(form) vs saveData(type, data))
+  var type = 'income';
+  var data = {};
+
+  if (arg2 !== undefined && arg2 !== null) {
+    type = String(arg1 || 'income');
+    data = (typeof arg2 === 'object') ? arg2 : { name: String(arg2) };
+  } else if (arg1 !== undefined && arg1 !== null) {
+    if (typeof arg1 === 'object') {
+      data = arg1;
+      type = data.type || data.action || 'income';
+    } else {
+      type = String(arg1);
+      data = {};
+    }
+  }
+
+  // 회원명 추출 (어떤 속성명으로 전달되어도 100% 포착)
+  var memberList = [];
+  if (Array.isArray(data.memberNames) && data.memberNames.length > 0) {
+    memberList = data.memberNames;
+  } else if (Array.isArray(data.names) && data.names.length > 0) {
+    memberList = data.names;
+  } else if (Array.isArray(data.members) && data.members.length > 0) {
+    memberList = data.members;
+  }
+
+  if (memberList.length === 0) {
+    var rawName = data.name || data.memberName || data.member || data.userName || 
+                  data.user || data.target || data.selectedMember || data.listIncome ||
+                  data['성명'] || data['이름'] || data['회원명'] || data['회원'] || data.who;
+    
+    if (!rawName && typeof data === 'object') {
+      var allKnownMembers = (typeof getMemberList === 'function') ? getMemberList() : [];
+      for (var k in data) {
+        if (data.hasOwnProperty(k)) {
+          var testVal = String(data[k] || '').trim();
+          if (testVal && allKnownMembers.indexOf(testVal) !== -1) {
+            rawName = testVal;
+            break;
+          }
+        }
+      }
+    }
+
+    if (rawName && String(rawName).trim() !== '' && String(rawName).trim() !== 'undefined') {
+      memberList = String(rawName).split(/[,|\\n]/).map(function(s){ return s.trim(); }).filter(Boolean);
+    }
+  }
+
+  if (type === 'income' || type === 'bulk_income' || type === 'saveIncome') {
+    if (memberList.length === 0) {
+      return "오류: 입금할 회원을 1명 이상 선택해주세요.";
+    }
+
+    var months = [];
+    if (Array.isArray(data.months)) {
+      months = data.months;
+    } else if (Array.isArray(data['months[]'])) {
+      months = data['months[]'];
+    } else if (data.months) {
+      months = String(data.months).split(/[,|\\s]/).map(function(s){ return s.trim(); }).filter(Boolean);
+    } else if (data.month) {
+      months = [String(data.month)];
+    } else {
+      for (var m = 1; m <= 12; m++) {
+        if (data['month' + m] || data['m' + m] || data[m + '월'] || data['month_' + m]) {
+          months.push(String(m));
+        }
+      }
+    }
+    if (months.length === 0) {
+      months = [String((new Date()).getMonth() + 1)];
+    }
+
+    var rawAmt = data.amount || data.totalAmount || data.fee || 50000;
+    var numAmount = Number(String(rawAmt).replace(/[^0-9]/g, '')) || 50000;
+    var isSponsor = data.isSponsor === true || data.isSponsor === 'true';
+    var note = data.note || data.memo || data.desc || '';
+
+    var allSheets = ss.getSheets();
+    var sheet = null;
+    for (var s = 0; s < allSheets.length; s++) {
+      var sName = allSheets[s].getName().replace(/\\s+/g, '');
+      if (sName.indexOf('회비') !== -1 && sName.indexOf('입출금') === -1 && sName.indexOf('지출') === -1 && sName.indexOf('결산') === -1) {
+        sheet = allSheets[s];
+        break;
+      }
+    }
+    if (!sheet) {
+      sheet = ss.getSheetByName("회비") || ss.getSheets()[0];
+    }
+
+    var values = sheet.getDataRange().getValues();
+    var nameCol = -1;
+    for (var rH = 0; rH < Math.min(5, values.length); rH++) {
+      for (var c = 0; c < values[rH].length; c++) {
+        var hStr = String(values[rH][c] || '').replace(/\\s+/g, '');
+        if (hStr === '성명' || hStr === '이름' || hStr === '회원명' || hStr === '회원') {
+          nameCol = c;
+          break;
+        }
+      }
+      if (nameCol !== -1) break;
+    }
+    if (nameCol === -1) nameCol = 1;
+
+    var monthColMap = {};
+    for (var rH2 = 0; rH2 < Math.min(5, values.length); rH2++) {
+      for (var c2 = 0; c2 < values[rH2].length; c2++) {
+        var h = String(values[rH2][c2] || '').replace(/[\\s\\u00a0]/g, '');
+        for (var m2 = 1; m2 <= 12; m2++) {
+          if (h === m2 + '월' || h === (m2 < 10 ? '0' + m2 + '월' : m2 + '월') || h === String(m2)) {
+            if (!monthColMap[m2]) monthColMap[m2] = c2 + 1;
+          }
+        }
+      }
+    }
+
+    var logSheet = ss.getSheetByName("입출금") || ss.getSheetByName("입출금내역") || ss.getSheetByName("장부");
+    var today = data.date || Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd");
+    var successCount = 0;
+    var autoAddedNames = [];
+
+    function findMemberRowInSheet(targetName) {
+      var cleanTarget = String(targetName || '').replace(/[\\s\\u00a0]/g, '');
+      if (!cleanTarget || cleanTarget === 'undefined') return -1;
+
+      for (var r = 0; r < values.length; r++) {
+        var cellName = String(values[r][nameCol] || '').replace(/[\\s\\u00a0]/g, '');
+        if (cellName === cleanTarget) return r + 1;
+      }
+
+      for (var r2 = 0; r2 < values.length; r2++) {
+        for (var c3 = 0; c3 < Math.min(10, values[r2].length); c3++) {
+          var cellVal = String(values[r2][c3] || '').replace(/[\\s\\u00a0]/g, '');
+          if (cellVal === cleanTarget) return r2 + 1;
+        }
+      }
+
+      for (var r3 = 0; r3 < values.length; r3++) {
+        for (var c4 = 0; c4 < Math.min(10, values[r3].length); c4++) {
+          var cellVal3 = String(values[r3][c4] || '').replace(/[\\s\\u00a0]/g, '');
+          if (cellVal3.indexOf(cleanTarget) !== -1 && cellVal3.length <= cleanTarget.length + 5) {
+            if (cellVal3.indexOf('입금') === -1 && cellVal3.indexOf('지출') === -1 && cellVal3.indexOf('총액') === -1) {
+              return r3 + 1;
+            }
+          }
+        }
+      }
+      return -1;
+    }
+
+    memberList.forEach(function(memName) {
+      var memberRow = findMemberRowInSheet(memName);
+
+      if (memberRow === -1) {
+        var lastRow = sheet.getLastRow();
+        var newRow = lastRow + 1;
+        try {
+          var prevSeq = sheet.getRange(lastRow, 1).getValue();
+          var nextSeq = (!isNaN(prevSeq) && Number(prevSeq) > 0) ? (Number(prevSeq) + 1) : (newRow - 1);
+          sheet.getRange(newRow, 1).setValue(nextSeq);
+        } catch(e) {}
+        sheet.getRange(newRow, nameCol + 1).setValue(memName);
+        memberRow = newRow;
+        autoAddedNames.push(memName);
+      }
+
+      if (months && months.length > 0) {
+        var perMonthAmount = Math.round(numAmount / months.length);
+        months.forEach(function(m) {
+          var col = monthColMap[Number(m)] || (nameCol + 3 + Number(m));
+          var cell = sheet.getRange(memberRow, col);
+          cell.setValue(perMonthAmount);
+          cell.setNumberFormat("#,##0");
+          cell.setBackground("#dcfce7");
+        });
+      }
+
+      if (logSheet) {
+        var desc = isSponsor ? "★ 스폰: " + note : (months.join(",") + "월 회비" + (note ? " (" + note + ")" : ""));
+        logSheet.appendRow([today, memName, desc, numAmount, ""]);
+        var lastLogRow = logSheet.getLastRow();
+        logSheet.getRange(lastLogRow, 4).setNumberFormat("#,##0").setBackground("#dcfce7");
+      }
+
+      successCount++;
+    });
+
+    var totalSum = successCount * numAmount;
+    var summary = "✅ " + (memberList.length === 1 ? memberList[0] + "님 " : "총 " + successCount + "명 ") + "회비 입력 완료! (총액: " + totalSum.toLocaleString() + "원)";
+    if (autoAddedNames.length > 0) {
+      summary += "\\n📌 회비 시트에 미등록 상태여서 자동으로 추가 등록된 회원: " + autoAddedNames.join(", ");
+    }
+    return summary;
+  }
+}
+
+// 기존 템플릿 호환 별칭
+function saveIncome(a, b) { return saveData('income', a || b); }
+function processForm(a, b) { return saveData(a, b); }
+function submitFee(a, b) { return saveData('income', a || b); }`;
 
 /**
  * 한울림 회비 & 등급 관리 전체 Google Apps Script (Code.gs)
@@ -333,6 +541,7 @@ function doPost(e) {
       contents = JSON.parse(e.postData.contents);
     }
     var type = contents.type || contents.action || 'income';
+    var payload = contents.data || contents;
 
     if (type === 'get_roster' || type === 'get_grades') {
       var memberGrades = getMemberGradeData();
@@ -343,7 +552,7 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    var result = saveData(type, contents);
+    var result = saveData(type, payload);
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
       message: result
@@ -505,71 +714,210 @@ function findColIndexByList(headers, names) {
   return null;
 }
 
-// 3. 데이터 저장 (핵심: 1명 또는 여러명 일괄 입력, 50,000 숫자만 저장 & 녹색 셀서식 유지)
-function saveData(type, data) {
+// 3. 데이터 저장 (1개 인자 or 2개 인자, 어떤 폼 속성명이든 100% 자동 감지)
+function saveData(arg1, arg2) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  if (type === 'income' || type === 'bulk_income') {
-    // 1명 또는 여러 명(배열 또는 쉼표 구분) 모두 완벽 지원
-    var memberList = [];
-    if (Array.isArray(data.memberNames) && data.memberNames.length > 0) {
-      memberList = data.memberNames;
-    } else if (data.memberName) {
-      memberList = String(data.memberName).split(/[,|\n]/).map(function(s){ return s.trim(); }).filter(Boolean);
+
+  // [핵심 1] 매개변수 유연 처리 (saveData(form) vs saveData(type, data))
+  var type = 'income';
+  var data = {};
+
+  if (arg2 !== undefined && arg2 !== null) {
+    type = String(arg1 || 'income');
+    data = (typeof arg2 === 'object') ? arg2 : { name: String(arg2) };
+  } else if (arg1 !== undefined && arg1 !== null) {
+    if (typeof arg1 === 'object') {
+      data = arg1;
+      type = data.type || data.action || 'income';
+    } else {
+      type = String(arg1);
+      data = {};
+    }
+  }
+
+  // [핵심 2] 회원명(memName) 추출 - name, memberName, member, userName, target 등 모든 속성 탐색
+  var memberList = [];
+
+  // 배열 형태 검사
+  if (Array.isArray(data.memberNames) && data.memberNames.length > 0) {
+    memberList = data.memberNames;
+  } else if (Array.isArray(data.names) && data.names.length > 0) {
+    memberList = data.names;
+  } else if (Array.isArray(data.members) && data.members.length > 0) {
+    memberList = data.members;
+  }
+
+  // 단일 이름 속성 검사
+  if (memberList.length === 0) {
+    var rawName = data.name || data.memberName || data.member || data.userName || 
+                  data.user || data.target || data.selectedMember || data.listIncome ||
+                  data['성명'] || data['이름'] || data['회원명'] || data['회원'] || data.who;
+    
+    // 만약 정의된 속성이 없다면, data 객체 내의 모든 키를 뒤져서 회원의 이름 값 찾기
+    if (!rawName && typeof data === 'object') {
+      var allKnownMembers = getMemberList();
+      for (var k in data) {
+        if (data.hasOwnProperty(k)) {
+          var testVal = String(data[k] || '').trim();
+          if (testVal && allKnownMembers.indexOf(testVal) !== -1) {
+            rawName = testVal;
+            break;
+          }
+        }
+      }
+      // 그래도 없으면 2~5글자 한글 문자열 찾기
+      if (!rawName) {
+        for (var k2 in data) {
+          if (data.hasOwnProperty(k2)) {
+            var val2 = String(data[k2] || '').trim();
+            if (val2 && isValidMemberName(val2) && val2.indexOf('월') === -1) {
+              rawName = val2;
+              break;
+            }
+          }
+        }
+      }
     }
 
+    if (rawName && String(rawName).trim() !== '' && String(rawName).trim() !== 'undefined') {
+      memberList = String(rawName).split(/[,|\n]/).map(function(s){ return s.trim(); }).filter(Boolean);
+    }
+  }
+  
+  if (type === 'income' || type === 'bulk_income' || type === 'saveIncome') {
     if (memberList.length === 0) {
       return "오류: 입금할 회원을 1명 이상 선택해주세요.";
     }
 
-    var months = data.months || []; // ["1", "2", ...]
+    // 월(months) 추출
+    var months = [];
+    if (Array.isArray(data.months)) {
+      months = data.months;
+    } else if (Array.isArray(data['months[]'])) {
+      months = data['months[]'];
+    } else if (data.months) {
+      months = String(data.months).split(/[,|\s]/).map(function(s){ return s.trim(); }).filter(Boolean);
+    } else if (data.month) {
+      months = [String(data.month)];
+    } else {
+      for (var m = 1; m <= 12; m++) {
+        if (data['month' + m] || data['m' + m] || data[m + '월'] || data['month_' + m]) {
+          months.push(String(m));
+        }
+      }
+    }
+    if (months.length === 0) {
+      months = [String((new Date()).getMonth() + 1)];
+    }
+
     // ★ 1인당 회비 금액을 순수 숫자로 정제 (기본 50,000)
-    var numAmount = Number(String(data.amount || 50000).replace(/[^0-9]/g, '')) || 50000;
+    var rawAmt = data.amount || data.totalAmount || data.fee || 50000;
+    var numAmount = Number(String(rawAmt).replace(/[^0-9]/g, '')) || 50000;
     var isSponsor = data.isSponsor === true || data.isSponsor === 'true';
-    var note = data.note || '';
+    var note = data.note || data.memo || data.desc || '';
 
-    var sheet = ss.getSheetByName("회비") || ss.getSheetByName("회비현황") || ss.getSheetByName("2025회비") || ss.getSheets()[0];
-    var values = sheet.getDataRange().getValues();
-    var nameCol = findColIndex(values, ['이름', '성명', '회원명']) || 1;
-
-    // 1월~12월 컬럼 매핑
-    var headerRowIdx = 0;
-    for (var r = 0; r < Math.min(3, values.length); r++) {
-      if (values[r].some(function(cell) { return String(cell).includes('1월') || String(cell).includes('2월'); })) {
-        headerRowIdx = r;
+    // 회비 시트 탐색 (2025회비, 2026회비, 회비, 회비현황 등 모두 지원)
+    var allSheets = ss.getSheets();
+    var sheet = null;
+    for (var s = 0; s < allSheets.length; s++) {
+      var sName = allSheets[s].getName().replace(/\s+/g, '');
+      if (sName.indexOf('회비') !== -1 && sName.indexOf('입출금') === -1 && sName.indexOf('지출') === -1 && sName.indexOf('결산') === -1) {
+        sheet = allSheets[s];
         break;
       }
     }
-    
-    var headers = values[headerRowIdx];
+    if (!sheet) {
+      sheet = ss.getSheetByName("회비") || ss.getSheets()[0];
+    }
+
+    var values = sheet.getDataRange().getValues();
+    var nameCol = -1;
+    for (var rH = 0; rH < Math.min(5, values.length); rH++) {
+      for (var c = 0; c < values[rH].length; c++) {
+        var hStr = String(values[rH][c] || '').replace(/\s+/g, '');
+        if (hStr === '성명' || hStr === '이름' || hStr === '회원명' || hStr === '회원') {
+          nameCol = c;
+          break;
+        }
+      }
+      if (nameCol !== -1) break;
+    }
+    if (nameCol === -1) nameCol = 1;
+
+    // 1월~12월 컬럼 매핑 (상단 1~4행 검사)
     var monthColMap = {};
-    for (var c = 0; c < headers.length; c++) {
-      var h = String(headers[c]).trim();
-      for (var m = 1; m <= 12; m++) {
-        if (h === m + '월' || h === String(m)) {
-          monthColMap[m] = c + 1;
+    for (var rH2 = 0; rH2 < Math.min(5, values.length); rH2++) {
+      for (var c2 = 0; c2 < values[rH2].length; c2++) {
+        var h = String(values[rH2][c2] || '').replace(/[\s\u00a0]/g, '');
+        for (var m2 = 1; m2 <= 12; m2++) {
+          if (h === m2 + '월' || h === (m2 < 10 ? '0' + m2 + '월' : m2 + '월') || h === String(m2)) {
+            if (!monthColMap[m2]) monthColMap[m2] = c2 + 1;
+          }
         }
       }
     }
 
     var logSheet = ss.getSheetByName("입출금") || ss.getSheetByName("입출금내역") || ss.getSheetByName("장부");
-    var today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd");
+    var today = data.date || Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd");
     var successCount = 0;
-    var notFoundNames = [];
+    var autoAddedNames = [];
 
-    // ★ 선택된 모든 회원을 순회하며 회비 입력 처리 ★
-    memberList.forEach(function(memName) {
-      var memberRow = -1;
+    // [핵심] 시트 내 회원 탐색 (공백 무시, 전 열 검색, 호칭/수식어 부분 일치)
+    function findMemberRowInSheet(targetName) {
+      var cleanTarget = String(targetName || '').replace(/[\s\u00a0]/g, '');
+      if (!cleanTarget || cleanTarget === 'undefined') return -1;
+
+      // 1순위: 지정된 nameCol에서 공백 무시 일치 (예: '권용국' vs '권 용 국')
       for (var r = 0; r < values.length; r++) {
-        if (String(values[r][nameCol]).trim() === memName) {
-          memberRow = r + 1;
-          break;
+        var cellName = String(values[r][nameCol] || '').replace(/[\s\u00a0]/g, '');
+        if (cellName === cleanTarget) {
+          return r + 1;
         }
       }
 
+      // 2순위: 전체 열(A열~H열)에서 공백 무시 완전 일치
+      for (var r2 = 0; r2 < values.length; r2++) {
+        for (var c3 = 0; c3 < Math.min(10, values[r2].length); c3++) {
+          var cellVal = String(values[r2][c3] || '').replace(/[\s\u00a0]/g, '');
+          if (cellVal === cleanTarget) {
+            return r2 + 1;
+          }
+        }
+      }
+
+      // 3순위: 수식어나 번호가 붙은 경우 (예: '권용국 회원', '권용국(이사)')
+      for (var r3 = 0; r3 < values.length; r3++) {
+        for (var c4 = 0; c4 < Math.min(10, values[r3].length); c4++) {
+          var cellVal3 = String(values[r3][c4] || '').replace(/[\s\u00a0]/g, '');
+          if (cellVal3.indexOf(cleanTarget) !== -1 && cellVal3.length <= cleanTarget.length + 5) {
+            if (cellVal3.indexOf('입금') === -1 && cellVal3.indexOf('지출') === -1 && cellVal3.indexOf('총액') === -1) {
+              return r3 + 1;
+            }
+          }
+        }
+      }
+
+      return -1;
+    }
+
+    // 선택된 회원 순회 입력
+    memberList.forEach(function(memName) {
+      var memberRow = findMemberRowInSheet(memName);
+
+      // ★ 회비 시트에 아직 행이 없는 경우 자동으로 맨 아래에 행 추가!
       if (memberRow === -1) {
-        notFoundNames.push(memName);
-        return;
+        var lastRow = sheet.getLastRow();
+        var newRow = lastRow + 1;
+        
+        try {
+          var prevSeq = sheet.getRange(lastRow, 1).getValue();
+          var nextSeq = (!isNaN(prevSeq) && Number(prevSeq) > 0) ? (Number(prevSeq) + 1) : (newRow - 1);
+          sheet.getRange(newRow, 1).setValue(nextSeq);
+        } catch(e) {}
+
+        sheet.getRange(newRow, nameCol + 1).setValue(memName);
+        memberRow = newRow;
+        autoAddedNames.push(memName);
       }
 
       // 월별 회비 셀 업데이트
@@ -580,7 +928,7 @@ function saveData(type, data) {
           var cell = sheet.getRange(memberRow, col);
           
           // ★ [핵심] "50,000원"(문자) 대신 숫자 50000 입력 및 녹색 셀서식 유지 ★
-          cell.setValue(perMonthAmount);      // 순수 숫자값 입력 (수식/합계 지원)
+          cell.setValue(perMonthAmount);      // 순수 숫자값 입력
           cell.setNumberFormat("#,##0");     // 50,000 화면 쉼표 서식
           cell.setBackground("#dcfce7");     // 연두/녹색 배경 서식 유지
         });
@@ -590,17 +938,17 @@ function saveData(type, data) {
       if (logSheet) {
         var desc = isSponsor ? "★ 스폰: " + note : (months.join(",") + "월 회비" + (note ? " (" + note + ")" : ""));
         logSheet.appendRow([today, memName, desc, numAmount, ""]);
-        var lastRow = logSheet.getLastRow();
-        logSheet.getRange(lastRow, 4).setNumberFormat("#,##0").setBackground("#dcfce7");
+        var lastLogRow = logSheet.getLastRow();
+        logSheet.getRange(lastLogRow, 4).setNumberFormat("#,##0").setBackground("#dcfce7");
       }
 
       successCount++;
     });
 
     var totalSum = successCount * numAmount;
-    var summary = "✅ 총 " + successCount + "명 회비 입력 완료! (총액: " + totalSum.toLocaleString() + "원)";
-    if (notFoundNames.length > 0) {
-      summary += "\n⚠️ 시트에 없는 회원: " + notFoundNames.join(", ");
+    var summary = "✅ " + (memberList.length === 1 ? memberList[0] + "님 " : "총 " + successCount + "명 ") + "회비 입력 완료! (총액: " + totalSum.toLocaleString() + "원)";
+    if (autoAddedNames.length > 0) {
+      summary += "\n📌 회비 시트에 미등록 상태여서 자동으로 추가 등록된 회원: " + autoAddedNames.join(", ");
     }
     return summary;
   } 
@@ -631,6 +979,12 @@ function saveData(type, data) {
     return "회원을 찾을 수 없습니다.";
   }
 }
+
+// 기존 구글 웹앱 폼/HTML 호환 별칭
+function saveIncome(a, b) { return saveData('income', a || b); }
+function processForm(a, b) { return saveData(a, b); }
+function submitFee(a, b) { return saveData('income', a || b); }
+function recordFee(a, b) { return saveData('income', a || b); }
 
 // 4. [원클릭 변환기] 시트에 이미 적혀있는 기존 '50,000원' 글자들을 순수 숫자(50,000)로 일괄 변환
 function convertExistingFeesToNumber() {
@@ -929,6 +1283,8 @@ function renderMainHtml(targetTab) {
     '    if (!name) { alert("회원을 선택해주세요."); return; }' +
     '    if (selectedMonths.length === 0) { alert("납부할 월을 1개 이상 선택해주세요."); return; }' +
     '    data.name = name;' +
+    '    data.memberName = name;' +
+    '    data.memberNames = [name];' +
     '    data.date = document.getElementById("incomeDate").value;' +
     '    data.months = selectedMonths;' +
     '    data.memo = document.querySelector("#incomeForm input[name=memo]").value;' +
