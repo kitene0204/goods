@@ -17,7 +17,12 @@ import {
   CreditCard,
   Megaphone,
   CheckSquare,
-  Cake
+  Cake,
+  UploadCloud,
+  DownloadCloud,
+  CheckCircle2,
+  AlertCircle,
+  Database
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -30,6 +35,10 @@ interface HeaderProps {
   lastSyncedAgo?: string;
   isPollingActive?: boolean;
   isSupabaseConnected?: boolean;
+  isPushing?: boolean;
+  isPulling?: boolean;
+  onPush?: () => void;
+  onPull?: () => void;
   onPollNow?: () => void;
   onOpenSettings: () => void;
   onOpenRoster: () => void;
@@ -49,6 +58,10 @@ export const Header: React.FC<HeaderProps> = ({
   lastSyncedAgo = '방금 전',
   isPollingActive = true,
   isSupabaseConnected = true,
+  isPushing = false,
+  isPulling = false,
+  onPush,
+  onPull,
   onPollNow,
   onOpenSettings,
   onOpenRoster,
@@ -308,15 +321,60 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
 
-        {/* Realtime Supabase status badge */}
-        <div className="hidden md:flex items-center gap-2 shrink-0 ml-2">
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 whitespace-nowrap">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-            </span>
-            <span className="text-emerald-400 font-bold whitespace-nowrap">실시간 동기화</span>
-          </div>
+        {/* Realtime Supabase status badge & Quick Push/Pull */}
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          {/* Quick Header Push / Pull buttons */}
+          {onPush && (
+            <button
+              id="header-quick-push-btn"
+              onClick={onPush}
+              disabled={isPushing || isPulling || syncStatus === 'syncing'}
+              className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
+              title="슈파베이스에 저장하기 (Push)"
+            >
+              {isPushing ? (
+                <RefreshCw className="w-3 h-3 animate-spin text-emerald-300" />
+              ) : (
+                <UploadCloud className="w-3 h-3 text-emerald-300" />
+              )}
+              <span className="whitespace-nowrap">저장(Push)</span>
+            </button>
+          )}
+
+          {onPull && (
+            <button
+              id="header-quick-pull-btn"
+              onClick={onPull}
+              disabled={isPushing || isPulling || syncStatus === 'syncing'}
+              className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-lime-400 border border-slate-700 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer"
+              title="데이터베이스에서 불러오기 (Pull)"
+            >
+              {isPulling ? (
+                <RefreshCw className="w-3 h-3 animate-spin text-lime-400" />
+              ) : (
+                <DownloadCloud className="w-3 h-3 text-lime-400" />
+              )}
+              <span className="whitespace-nowrap">불러오기(Pull)</span>
+            </button>
+          )}
+
+          {/* Sync Status Badge with Icon */}
+          {isPushing || isPulling || syncStatus === 'syncing' ? (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-black whitespace-nowrap animate-pulse">
+              <RefreshCw className="w-3 h-3 animate-spin text-amber-400" />
+              <span>동기화 중...</span>
+            </div>
+          ) : syncStatus === 'error' ? (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[11px] font-black whitespace-nowrap">
+              <AlertCircle className="w-3 h-3 text-rose-400" />
+              <span>동기화 오류</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-black whitespace-nowrap">
+              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+              <span>완료 상태</span>
+            </div>
+          )}
         </div>
       </div>
     </header>

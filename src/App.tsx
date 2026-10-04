@@ -38,6 +38,7 @@ import { GoogleSheetModal } from './components/GoogleSheetModal';
 import { LuckyDrawModal } from './components/LuckyDrawModal';
 import { EventSettingsModal } from './components/EventSettingsModal';
 import { SupabaseModal } from './components/SupabaseModal';
+import { DatabaseSyncBar } from './components/DatabaseSyncBar';
 import { Toast, ToastMessage } from './components/Toast';
 import confetti from 'canvas-confetti';
 import {
@@ -64,7 +65,11 @@ import {
   Megaphone,
   ExternalLink,
   Cake,
-  Users
+  Users,
+  UploadCloud,
+  DownloadCloud,
+  AlertCircle,
+  Database
 } from 'lucide-react';
 
 export default function App() {
@@ -74,6 +79,10 @@ export default function App() {
   const [clubMembers, setClubMembers] = useState<ClubMember[]>(() => loadClubMembers());
   const [syncHistory, setSyncHistory] = useState<SyncHistoryEntry[]>(() => loadSyncHistory());
   const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(true);
+  const [isSupabasePushing, setIsSupabasePushing] = useState<boolean>(false);
+  const [isSupabasePulling, setIsSupabasePulling] = useState<boolean>(false);
+  const [dbLastSyncedTime, setDbLastSyncedTime] = useState<string>('방금 전');
+  const [dbSyncError, setDbSyncError] = useState<string | null>(null);
 
   // 1.5 Main Navigation Tab (Checkin vs Fee vs Notice vs Age)
   const [activeMainTab, setActiveMainTab] = useState<MainAppTab>('checkin');
@@ -445,6 +454,72 @@ export default function App() {
     triggerLocalChangePush();
   };
 
+  // Unified Effective Sync Status (combining polling and direct Supabase Push/Pull)
+  const effectiveSyncStatus: 'idle' | 'syncing' | 'synced' | 'error' = useMemo(() => {
+    if (isSupabasePushing || isSupabasePulling || syncStatus === 'syncing') {
+      return 'syncing';
+    }
+    if (dbSyncError || syncStatus === 'error') {
+      return 'error';
+    }
+    return 'synced';
+  }, [isSupabasePushing, isSupabasePulling, syncStatus, dbSyncError]);
+
+  // 1. 슈파베이스에 저장하기 (Push)
+  const handlePushToSupabase = useCallback(async () => {
+    if (isSupabasePushing || isSupabasePulling) return;
+    setIsSupabasePushing(true);
+    setDbSyncError(null);
+    try {
+      const ok = await bulkUpsertParticipantsToSupabase(participants);
+      if (ok) {
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        setDbLastSyncedTime(timeStr);
+        showToast(`⚡ 슈파베이스에 저장하기 (Push) 완료! (${participants.length}명 현황 저장)`, 'success');
+        pushNow();
+      } else {
+        setDbSyncError('저장 실패');
+        showToast('슈파베이스 저장(Push) 실패: Supabase 연결 설정을 확인해주세요.', 'error');
+      }
+    } catch (err: any) {
+      setDbSyncError(err?.message || '오류');
+      showToast(`저장 중 오류: ${err?.message || '네트워크 오류'}`, 'error');
+    } finally {
+      setIsSupabasePushing(false);
+    }
+  }, [participants, isSupabasePushing, isSupabasePulling, pushNow, showToast]);
+
+  // 2. 데이터베이스에서 불러오기 (Pull)
+  const handlePullFromSupabase = useCallback(async () => {
+    if (isSupabasePushing || isSupabasePulling) return;
+    setIsSupabasePulling(true);
+    setDbSyncError(null);
+    try {
+      const remote = await fetchParticipantsFromSupabase();
+      if (remote && remote.length > 0) {
+        handleSetParticipants(remote);
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        setDbLastSyncedTime(timeStr);
+        showToast(`📥 데이터베이스에서 불러오기 (Pull) 완료! (${remote.length}명 최신 반영)`, 'success');
+      } else if (remote && remote.length === 0) {
+        showToast('데이터베이스에 저장된 명단이 없습니다. 먼저 [슈파베이스에 저장하기]를 실행하세요.', 'info');
+      } else {
+        await pollNow();
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        setDbLastSyncedTime(timeStr);
+        showToast('데이터베이스에서 최신 데이터를 불러왔습니다.', 'success');
+      }
+    } catch (err: any) {
+      setDbSyncError(err?.message || '오류');
+      showToast(`불러오기 중 오류: ${err?.message || '네트워크 오류'}`, 'error');
+    } finally {
+      setIsSupabasePulling(false);
+    }
+  }, [isSupabasePushing, isSupabasePulling, pollNow, showToast]);
+
   const handleToggleTheme = () => {
     setConfig((prev) => ({
       ...prev,
@@ -473,10 +548,14 @@ export default function App() {
         activeTab={activeMainTab}
         onSelectTab={setActiveMainTab}
         onOpenAgeModal={() => setIsAgeModalOpen(true)}
-        syncStatus={syncStatus}
+        syncStatus={effectiveSyncStatus}
         lastSyncedAgo={lastSyncedAgoText}
         isPollingActive={isPollingActive}
         isSupabaseConnected={isSupabaseConnected}
+        isPushing={isSupabasePushing}
+        isPulling={isSupabasePulling}
+        onPush={handlePushToSupabase}
+        onPull={handlePullFromSupabase}
         onPollNow={pollNow}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenRoster={() => setIsRosterOpen(true)}
@@ -686,57 +765,86 @@ export default function App() {
               </div>
             </div>
 
-            {/* 5-Second Real-Time Auto-Polling Status Card */}
+            {/* Supabase Cloud DB Push / Pull & Sync Status Card */}
             <div className="bg-slate-900 text-white border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-lime-400"></span>
-                  </span>
-                  <span className="text-xs font-black text-lime-300">5초 자동 동기화 활성</span>
+                  <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                    <Database className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-black text-white">클라우드 DB 상태</span>
                 </div>
-                <button
-                  onClick={pollNow}
-                  className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-lime-400 transition-colors cursor-pointer"
-                  title="지금 즉시 동기화"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${syncStatus === 'syncing' ? 'animate-spin text-lime-400' : ''}`} />
-                </button>
+                
+                {/* Status Badge with Icon: 동기화 중 vs 완료 상태 vs 오류 */}
+                {effectiveSyncStatus === 'syncing' ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
+                    <RefreshCw className="w-3 h-3 animate-spin text-amber-400" />
+                    <span>동기화 중...</span>
+                  </span>
+                ) : effectiveSyncStatus === 'error' ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                    <AlertCircle className="w-3 h-3 text-rose-400" />
+                    <span>동기화 오류</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <span>완료 상태</span>
+                  </span>
+                )}
               </div>
 
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between text-slate-400">
                   <span>동기화 상태:</span>
                   <span className="font-bold text-slate-200">
-                    {syncStatus === 'syncing' ? '동기화 중...' : syncStatus === 'error' ? '오프라인 보관' : '최신 유지 중'}
+                    {effectiveSyncStatus === 'syncing' ? '동기화 진행 중...' : effectiveSyncStatus === 'error' ? '연결 오류' : '동기화 완료 (최신)'}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-400">
-                  <span>마지막 동기화:</span>
-                  <span className="font-mono text-lime-400 font-bold">{lastSyncedAgoText}</span>
+                  <span>마지막 반영:</span>
+                  <span className="font-mono text-lime-400 font-bold">{dbLastSyncedTime || lastSyncedAgoText}</span>
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                A 사용자가 체크하면 B 사용자의 화면도 <strong>5초마다 자동으로 갱신</strong>됩니다.
-              </p>
+              {/* 2 Primary Distinct Action Buttons: Push & Pull */}
+              <div className="space-y-1.5 pt-1">
+                {/* 1. 슈파베이스에 저장하기 (Push) */}
+                <button
+                  id="sidebar-db-push-btn"
+                  onClick={handlePushToSupabase}
+                  disabled={isSupabasePushing || isSupabasePulling}
+                  className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition-all shadow-xs active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                  title="현재 화면의 모든 출석 및 수령 상태를 슈파베이스 클라우드에 즉시 저장합니다 (Push)"
+                >
+                  {isSupabasePushing ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                  ) : (
+                    <UploadCloud className="w-3.5 h-3.5 text-emerald-100" />
+                  )}
+                  <span>슈파베이스에 저장하기 (Push)</span>
+                </button>
 
-              <div className="grid grid-cols-2 gap-1.5 pt-1">
+                {/* 2. 데이터베이스에서 불러오기 (Pull) */}
                 <button
-                  onClick={pollNow}
-                  className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                  id="sidebar-db-pull-btn"
+                  onClick={handlePullFromSupabase}
+                  disabled={isSupabasePushing || isSupabasePulling}
+                  className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-850 text-lime-400 text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition-all border border-slate-700 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                  title="슈파베이스 클라우드 데이터베이스의 최신 데이터를 화면으로 가져옵니다 (Pull)"
                 >
-                  <RefreshCw className="w-3 h-3 text-lime-400" />
-                  <span>즉시 새로고침</span>
+                  {isSupabasePulling ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-lime-400" />
+                  ) : (
+                    <DownloadCloud className="w-3.5 h-3.5 text-lime-400" />
+                  )}
+                  <span>데이터베이스에서 불러오기 (Pull)</span>
                 </button>
-                <button
-                  onClick={pushNow}
-                  className="py-1.5 px-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 text-xs font-black flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Zap className="w-3 h-3 text-slate-950" />
-                  <span>시트 즉시저장</span>
-                </button>
+              </div>
+
+              <div className="text-[11px] text-slate-400 space-y-0.5 pt-1 border-t border-slate-800">
+                <p>• <strong>저장하기 (Push)</strong>: 현재 수령 체크를 DB에 저장</p>
+                <p>• <strong>불러오기 (Pull)</strong>: DB의 최신 명단을 화면으로 로드</p>
               </div>
             </div>
 
@@ -862,6 +970,20 @@ export default function App() {
               onOpenGoogleSheetModal={() => setIsGoogleSheetOpen(true)}
               onOpenBulkPayment={() => setIsBulkFeeModalOpen(true)}
               onOpenSyncRosterModal={() => setIsSyncRosterSheetOpen(true)}
+            />
+
+            {/* ⚡ Supabase Cloud DB Push / Pull & Sync Status Panel */}
+            <DatabaseSyncBar
+              status={effectiveSyncStatus}
+              lastSyncedAgo={lastSyncedAgoText}
+              lastSyncedTime={dbLastSyncedTime}
+              isPushing={isSupabasePushing}
+              isPulling={isSupabasePulling}
+              onPush={handlePushToSupabase}
+              onPull={handlePullFromSupabase}
+              totalParticipants={participants.length}
+              checkedCount={checkedCount}
+              onOpenSupabaseModal={() => setIsSupabaseOpen(true)}
             />
 
             {/* Real-time Progress & Counting Stats Bar */}

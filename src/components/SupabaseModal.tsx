@@ -11,7 +11,9 @@ import {
   ShieldCheck,
   Database,
   Smartphone,
-  Laptop
+  Laptop,
+  UploadCloud,
+  DownloadCloud
 } from 'lucide-react';
 import { Participant } from '../types';
 import {
@@ -172,28 +174,34 @@ create policy "Allow all public access" on participants for all using (true) wit
             </div>
           </div>
 
-          {/* Sync Actions */}
+          {/* Sync Actions: Push & Pull */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <button
               onClick={handlePushAllToCloud}
               disabled={isSyncing}
-              className="px-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md shadow-emerald-500/20 active:scale-98 disabled:opacity-50"
+              className="px-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md shadow-emerald-500/20 active:scale-98 disabled:opacity-50"
+              title="슈파베이스에 저장하기 (Push)"
             >
               {isSyncing ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
-                <Database className="w-4 h-4" />
+                <UploadCloud className="w-4 h-4 text-slate-950" />
               )}
-              <span>전체 명단 클라우드로 업로드 ({participants.length}명)</span>
+              <span>슈파베이스에 저장하기 (Push)</span>
             </button>
 
             <button
               onClick={handlePullFromCloud}
               disabled={isSyncing}
-              className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98 disabled:opacity-50"
+              className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-750 text-lime-400 border border-slate-700 font-black text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98 disabled:opacity-50"
+              title="데이터베이스에서 불러오기 (Pull)"
             >
-              <RefreshCw className={`w-4 h-4 text-sky-400 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>클라우드에서 최신 상태 불러오기</span>
+              {isSyncing ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-lime-400" />
+              ) : (
+                <DownloadCloud className="w-4 h-4 text-lime-400" />
+              )}
+              <span>데이터베이스에서 불러오기 (Pull)</span>
             </button>
           </div>
 
