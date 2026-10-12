@@ -20,7 +20,7 @@ import {
   INITIAL_PARTICIPANTS
 } from './utils/storage';
 import { matchesChosungOrText } from './utils/chosung';
-import { findMemberGradeInfo } from './data/memberGrades';
+import { findMemberGradeInfo, saveCustomMemberGrade } from './data/memberGrades';
 import { usePollingSync } from './hooks/usePollingSync';
 import { Header } from './components/Header';
 import { StatsBar } from './components/StatsBar';
@@ -33,6 +33,7 @@ import { MemberAgeModal } from './components/MemberAgeModal';
 import { HanwoolimSheetView } from './components/HanwoolimSheetView';
 import { BulkFeePaymentModal } from './components/BulkFeePaymentModal';
 import { SyncRosterFromSheetModal } from './components/SyncRosterFromSheetModal';
+import { SyncGreenReceivedModal } from './components/SyncGreenReceivedModal';
 import { RosterModal } from './components/RosterModal';
 import { GoogleSheetModal } from './components/GoogleSheetModal';
 import { LuckyDrawModal } from './components/LuckyDrawModal';
@@ -98,6 +99,7 @@ export default function App() {
   const [isRosterOpen, setIsRosterOpen] = useState(false);
   const [isGoogleSheetOpen, setIsGoogleSheetOpen] = useState(false);
   const [isSyncRosterSheetOpen, setIsSyncRosterSheetOpen] = useState(false);
+  const [isSyncGreenModalOpen, setIsSyncGreenModalOpen] = useState(false);
   const [isSupabaseOpen, setIsSupabaseOpen] = useState(false);
   const [isLuckyDrawOpen, setIsLuckyDrawOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -199,6 +201,38 @@ export default function App() {
     saveEventConfig(config);
   }, [config]);
 
+  // Ensure all participants have their official Hanwoolim grade, score, and division
+  useEffect(() => {
+    setParticipants((prev) => {
+      let hasChange = false;
+      const verified = prev.map((p) => {
+        const official = findMemberGradeInfo(p.name);
+        const correctGrade = official?.grade || p.grade || '동';
+        const correctScore = official?.score ?? p.score ?? 1;
+        const correctDiv = (p.division && p.division !== '일반')
+          ? p.division
+          : (official?.division || '동배부');
+
+        if (p.grade !== correctGrade || p.score !== correctScore || p.division !== correctDiv) {
+          hasChange = true;
+          return {
+            ...p,
+            grade: correctGrade,
+            score: correctScore,
+            division: correctDiv,
+          };
+        }
+        return p;
+      });
+
+      if (hasChange) {
+        saveParticipants(verified);
+        return verified;
+      }
+      return prev;
+    });
+  }, []);
+
   useEffect(() => {
     saveParticipants(participants);
   }, [participants]);
@@ -235,13 +269,13 @@ export default function App() {
       // 2. Division Filter (matches division or grade tier)
       if (selectedDivision !== 'all') {
         const gradeInfo = findMemberGradeInfo(p.name, p.grade, p.score);
-        const resolvedDiv = p.division || gradeInfo?.division;
+        const resolvedDiv = (p.division && p.division !== '일반') ? p.division : (gradeInfo?.division || '동배부');
         const matchesDiv =
           resolvedDiv === selectedDivision ||
           gradeInfo?.division === selectedDivision ||
-          (selectedDivision === '금배부' && gradeInfo?.tier === 'gold') ||
-          (selectedDivision === '은배부' && gradeInfo?.tier === 'silver') ||
-          (selectedDivision === '동배부' && gradeInfo?.tier === 'bronze');
+          (selectedDivision === '금배부' && (gradeInfo?.tier === 'gold' || resolvedDiv === '금배부')) ||
+          (selectedDivision === '은배부' && (gradeInfo?.tier === 'silver' || resolvedDiv === '은배부')) ||
+          (selectedDivision === '동배부' && (gradeInfo?.tier === 'bronze' || resolvedDiv === '동배부'));
 
         if (!matchesDiv) return false;
       }
@@ -321,6 +355,7 @@ export default function App() {
         showToast('🎉 축하합니다! 모든 참가자의 수령 체크가 완료되었습니다!', 'success');
       }
 
+      saveParticipants(updated);
       return updated;
     });
 
@@ -336,8 +371,8 @@ export default function App() {
   const handleToggleItem = (participantId: string, itemId: string) => {
     let targetParticipant: Participant | null = null;
 
-    setParticipants((prev) =>
-      prev.map((p) => {
+    setParticipants((prev) => {
+      const nextList = prev.map((p) => {
         if (p.id === participantId) {
           const nextItems = { ...(p.items || {}) };
           nextItems[itemId] = !nextItems[itemId];
@@ -349,8 +384,10 @@ export default function App() {
           return modified;
         }
         return p;
-      })
-    );
+      });
+      saveParticipants(nextList);
+      return nextList;
+    });
 
     if (targetParticipant) {
       upsertParticipantToSupabase(targetParticipant);
@@ -361,21 +398,28 @@ export default function App() {
   const handleUpdateParticipant = (id: string, updates: Partial<Participant>) => {
     let targetParticipant: Participant | null = null;
 
-    setParticipants((prev) =>
-      prev.map((p) => {
+    setParticipants((prev) => {
+      const nextList = prev.map((p) => {
         if (p.id === id) {
           const mod = { ...p, ...updates };
           targetParticipant = mod;
           return mod;
         }
         return p;
-      })
-    );
+      });
+      saveParticipants(nextList);
+      return nextList;
+    });
 
     if (targetParticipant) {
+      const p = targetParticipant as Participant;
+      if (p.grade) {
+        const numScore = typeof p.score === 'number' ? p.score : (parseInt(String(p.score || 1), 10) || 1);
+        saveCustomMemberGrade(p.name, p.grade, numScore, p.division as any);
+      }
       upsertParticipantToSupabase(targetParticipant);
     }
-    showToast('참가자 정보가 업데이트되었습니다.', 'success');
+    showToast('참가자 등급 및 정보가 저장되었습니다.', 'success');
     triggerLocalChangePush();
   };
 
@@ -498,7 +542,16 @@ export default function App() {
     try {
       const remote = await fetchParticipantsFromSupabase();
       if (remote && remote.length > 0) {
-        handleSetParticipants(remote);
+        const enriched = remote.map((p) => {
+          const g = findMemberGradeInfo(p.name);
+          return {
+            ...p,
+            grade: g?.grade || p.grade || '동',
+            score: g?.score ?? p.score ?? 1,
+            division: (p.division && p.division !== '일반') ? p.division : (g?.division || '동배부'),
+          };
+        });
+        handleSetParticipants(enriched);
         const now = new Date();
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
         setDbLastSyncedTime(timeStr);
@@ -519,6 +572,21 @@ export default function App() {
       setIsSupabasePulling(false);
     }
   }, [isSupabasePushing, isSupabasePulling, pollNow, showToast]);
+
+  // 한울림 구글 시트 공식 마스터 등급(F열/G열) 동기화
+  const handleRestoreOfficialGrades = useCallback(() => {
+    const updated = participants.map((p) => {
+      const official = findMemberGradeInfo(p.name);
+      return {
+        ...p,
+        grade: official?.grade || p.grade || '동',
+        score: official?.score ?? p.score ?? 1,
+        division: official?.division || p.division || '동배부',
+      };
+    });
+    handleSetParticipants(updated);
+    showToast('🏅 구글 시트 [회원명부(정회원)] 공식 등급(F·G열)이 100% 반영되었습니다!', 'success');
+  }, [participants, handleSetParticipants, showToast]);
 
   const handleToggleTheme = () => {
     setConfig((prev) => ({
@@ -741,6 +809,24 @@ export default function App() {
                     </span>
                   </button>
                 </div>
+
+                {/* 6. 구글 시트 연두색 수령자 동기화 (NEW!) */}
+                <div className="flex items-center gap-1">
+                  <button
+                    id="sidebar-sync-green-btn"
+                    onClick={() => setIsSyncGreenModalOpen(true)}
+                    className="flex-1 flex items-center justify-between p-2 rounded-xl text-xs font-black transition-all cursor-pointer bg-slate-800/90 hover:bg-slate-800 text-lime-300 border border-lime-500/40 hover:border-lime-400"
+                    title="구글 시트 '회원명부(정회원)' 연두색 수령자 동기화 및 직접 편집"
+                  >
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="text-sm">🌿</span>
+                      <span className="truncate">연두색 수령자 동기화</span>
+                    </div>
+                    <span className="text-[9px] bg-lime-400 text-slate-950 px-1 py-0.2 rounded font-mono font-bold">
+                      수령
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -949,6 +1035,9 @@ export default function App() {
         ) : activeMainTab === 'sheet' ? (
           <HanwoolimSheetView
             config={config}
+            participants={participants}
+            onUpdateParticipants={handleSetParticipants}
+            onOpenSyncGreenModal={() => setIsSyncGreenModalOpen(true)}
             onUpdateConfig={(updates) => {
               setConfig((prev) => ({ ...prev, ...updates }));
               triggerLocalChangePush();
@@ -970,6 +1059,8 @@ export default function App() {
               onOpenGoogleSheetModal={() => setIsGoogleSheetOpen(true)}
               onOpenBulkPayment={() => setIsBulkFeeModalOpen(true)}
               onOpenSyncRosterModal={() => setIsSyncRosterSheetOpen(true)}
+              onRestoreOfficialGrades={handleRestoreOfficialGrades}
+              onOpenSyncGreenModal={() => setIsSyncGreenModalOpen(true)}
             />
 
             {/* ⚡ Supabase Cloud DB Push / Pull & Sync Status Panel */}
@@ -995,6 +1086,7 @@ export default function App() {
               onMarkAllChecked={handleMarkAllChecked}
               onResetAllChecked={handleResetAllChecked}
               onShowToast={showToast}
+              onOpenSyncGreenModal={() => setIsSyncGreenModalOpen(true)}
             />
 
             {/* Chosung Search, Sort & View Mode Bar */}
@@ -1010,6 +1102,25 @@ export default function App() {
               sortOrder={sortOrder}
               onSortOrderChange={setSortOrder}
             />
+
+            {/* Quick Tip for member grades */}
+            <div className="flex items-center justify-between gap-2 px-3.5 py-2 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-950 shadow-2xs">
+              <div className="flex items-center gap-2 truncate">
+                <span className="font-black text-emerald-900 bg-emerald-200/80 px-2 py-0.5 rounded-md text-[11px] shrink-0">
+                  🏅 등급 변경
+                </span>
+                <span className="truncate text-[11px] text-emerald-800 font-medium">
+                  회원 카드의 <strong>등급 뱃지</strong>를 터치하면 개별 등급을 즉시 변경할 수 있습니다.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSyncRosterSheetOpen(true)}
+                className="text-[11px] font-black text-emerald-700 hover:text-emerald-950 underline whitespace-nowrap cursor-pointer shrink-0"
+              >
+                [회원명부(정회원)] 시트 일괄 동기화 →
+              </button>
+            </div>
 
             {/* Participant Cards Stream */}
             <div className="flex-1">
@@ -1232,6 +1343,17 @@ export default function App() {
           showToast(`구글 시트 회원명부(F·G열) 등급이 성공적으로 반영되었습니다!`, 'success');
         }}
         eventConfig={config}
+      />
+
+      <SyncGreenReceivedModal
+        isOpen={isSyncGreenModalOpen}
+        onClose={() => setIsSyncGreenModalOpen(false)}
+        participants={participants}
+        onUpdateParticipants={(updated) => {
+          handleSetParticipants(updated);
+          triggerLocalChangePush();
+        }}
+        onShowToast={showToast}
       />
 
       <GoogleSheetModal

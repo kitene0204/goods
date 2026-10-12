@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Participant, EventConfig } from '../types';
 import { fetchFromGoogleSheets, syncToGoogleSheets } from '../utils/gasSync';
+import { findMemberGradeInfo } from '../data/memberGrades';
 
 interface UsePollingSyncOptions {
   config: EventConfig;
@@ -341,6 +342,17 @@ function mergeParticipantLists(local: Participant[], remote: Participant[]): Par
 
   return remote.map((r, index) => {
     const matched = localMap.get(r.id) || localMap.get(normalizeKey(r));
+    const preferredGrade = r.grade || matched?.grade;
+    const preferredScore = r.score ?? matched?.score;
+    const gradeInfo = findMemberGradeInfo(r.name || matched?.name || '', preferredGrade, preferredScore);
+    const resolvedGrade = preferredGrade || gradeInfo?.grade || '동';
+    const resolvedScore = preferredScore ?? gradeInfo?.score ?? 1;
+    const resolvedDivision = (r.division && r.division !== '일반')
+      ? r.division
+      : (matched?.division && matched.division !== '일반')
+      ? matched.division
+      : (gradeInfo?.division || (resolvedGrade.startsWith('금') ? '금배부' : resolvedGrade.startsWith('은') ? '은배부' : '동배부'));
+
     if (matched) {
       return {
         ...matched,
@@ -350,7 +362,9 @@ function mergeParticipantLists(local: Participant[], remote: Participant[]): Par
         proxyName: r.proxyName !== undefined ? r.proxyName : matched.proxyName,
         raffleWinnerPrize: r.raffleWinnerPrize || matched.raffleWinnerPrize,
         notes: r.notes || matched.notes,
-        division: r.division || matched.division,
+        division: resolvedDivision,
+        grade: resolvedGrade,
+        score: resolvedScore,
         group: r.group || matched.group,
         items: { ...(matched.items || {}), ...(r.items || {}) },
       };
@@ -359,6 +373,9 @@ function mergeParticipantLists(local: Participant[], remote: Participant[]): Par
     return {
       ...r,
       id: r.id || `p-synced-${index + 1}-${Date.now()}`,
+      division: resolvedDivision,
+      grade: resolvedGrade,
+      score: resolvedScore,
     };
   });
 }

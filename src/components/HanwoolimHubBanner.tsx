@@ -10,6 +10,8 @@ interface HanwoolimHubBannerProps {
   onOpenGoogleSheetModal?: () => void;
   onOpenBulkPayment?: () => void;
   onOpenSyncRosterModal?: () => void;
+  onRestoreOfficialGrades?: () => void;
+  onOpenSyncGreenModal?: () => void;
 }
 
 export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
@@ -20,6 +22,8 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
   onOpenGoogleSheetModal,
   onOpenBulkPayment,
   onOpenSyncRosterModal,
+  onRestoreOfficialGrades,
+  onOpenSyncGreenModal,
 }) => {
   return (
     <section 
@@ -45,18 +49,40 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
             </h2>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {onOpenSyncRosterModal && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {onRestoreOfficialGrades && (
             <button
-              onClick={onOpenSyncRosterModal}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-sm transition-all active:scale-95 cursor-pointer"
-              title="구글 시트 '회원명부(정회원)' F열(점수)/G열(등급) 동기화"
+              id="hub-restore-official-grades-btn"
+              onClick={onRestoreOfficialGrades}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-sm transition-all active:scale-95 cursor-pointer"
+              title="구글 시트 '회원명부(정회원)' F열(점수)·G열(등급) 공식 데이터 전체 카드에 100% 일괄 적용"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>회원명부(F·G열) 등급 동기화</span>
+              <span>🏅 공식 등급 100% 일괄 동기화</span>
             </button>
           )}
-          <div className="text-[11px] text-slate-400 hidden lg:block">
+          {onOpenSyncRosterModal && (
+            <button
+              id="hub-sync-roster-btn"
+              onClick={onOpenSyncRosterModal}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer ring-2 ring-emerald-400/40"
+              title="구글 시트 '회원명부(정회원)' F열(등급점수) & G열(등급 금·은·동) 동기화"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-950" />
+              <span>📋 시트 등급(F·G열) 동기화</span>
+            </button>
+          )}
+          {onOpenSyncGreenModal && (
+            <button
+              id="hub-sync-green-btn"
+              onClick={onOpenSyncGreenModal}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer ring-2 ring-lime-400/50"
+              title="구글 시트 '회원명부(정회원)' 연두색 수령자 동기화 및 직접 편집"
+            >
+              <span>🌿</span>
+              <span>연두색 수령자 동기화</span>
+            </button>
+          )}
+          <div className="text-[11px] text-slate-400 hidden xl:block">
             회비·등급, 공지, 회원연령, 회계결산 바로가기
           </div>
         </div>

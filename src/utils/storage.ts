@@ -1,5 +1,5 @@
 import { EventConfig, Participant, ClubMember, SyncHistoryEntry } from '../types';
-import { findMemberGradeInfo } from '../data/memberGrades';
+import { findMemberGradeInfo, saveBulkCustomMemberGrades } from '../data/memberGrades';
 
 const STORAGE_KEYS = {
   EVENT_CONFIG: 'tennis_checkin_event_config_v3',
@@ -25,81 +25,76 @@ export const INITIAL_EVENT_CONFIG: EventConfig = {
   fontSize: 'xlarge',
 };
 
-// 한울림 테니스클럽 전체 회원 DB (가나다 오름차순 정렬 73명)
+// 한울림 테니스클럽 전체 회원 DB (구글 시트 '회원명부(정회원)' 68명 원본 100% 반영)
 const RAW_HANWOOLIM_CLUB_MEMBERS: ClubMember[] = [
-  { id: 'm-1', name: '강명규', phone: '', division: '일반', memberNumber: '001' },
-  { id: 'm-2', name: '강석원', phone: '', division: '일반', memberNumber: '002' },
-  { id: 'm-3', name: '강운석', phone: '', division: '일반', memberNumber: '003' },
-  { id: 'm-4', name: '강전성', phone: '', division: '일반', memberNumber: '004' },
-  { id: 'm-5', name: '고광직', phone: '', division: '일반', memberNumber: '005' },
-  { id: 'm-6', name: '권용국', phone: '', division: '일반', memberNumber: '006' },
-  { id: 'm-7', name: '김동찬', phone: '', division: '일반', memberNumber: '007' },
-  { id: 'm-8', name: '김선경', phone: '', division: '일반', memberNumber: '008' },
-  { id: 'm-9', name: '김영수', phone: '', division: '일반', memberNumber: '009' },
-  { id: 'm-10', name: '김영현', phone: '', division: '일반', memberNumber: '010' },
-  { id: 'm-11', name: '김요셉', phone: '', division: '일반', memberNumber: '011' },
-  { id: 'm-12', name: '김일태', phone: '', division: '일반', memberNumber: '012' },
-  { id: 'm-13', name: '김재선', phone: '', division: '일반', memberNumber: '013' },
-  { id: 'm-14', name: '김준관', phone: '', division: '일반', memberNumber: '014' },
-  { id: 'm-15', name: '김준동', phone: '', division: '일반', memberNumber: '015' },
-  { id: 'm-16', name: '김진규', phone: '', division: '일반', memberNumber: '016' },
-  { id: 'm-17', name: '김태균', phone: '', division: '일반', memberNumber: '017' },
-  { id: 'm-18', name: '김한준', phone: '', division: '일반', memberNumber: '018' },
-  { id: 'm-19', name: '김한진', phone: '', division: '일반', memberNumber: '019' },
-  { id: 'm-20', name: '김현우', phone: '', division: '일반', memberNumber: '020' },
-  { id: 'm-21', name: '문범준', phone: '', division: '일반', memberNumber: '021' },
-  { id: 'm-22', name: '문현덕', phone: '', division: '일반', memberNumber: '022' },
-  { id: 'm-23', name: '박공래', phone: '', division: '일반', memberNumber: '023' },
-  { id: 'm-24', name: '박광전', phone: '', division: '일반', memberNumber: '024' },
-  { id: 'm-25', name: '박력', phone: '', division: '일반', memberNumber: '025' },
-  { id: 'm-26', name: '박의경', phone: '', division: '일반', memberNumber: '026' },
-  { id: 'm-27', name: '박정태', phone: '', division: '일반', memberNumber: '027' },
-  { id: 'm-28', name: '배동연', phone: '', division: '일반', memberNumber: '028' },
-  { id: 'm-29', name: '배정민', phone: '', division: '일반', memberNumber: '029' },
-  { id: 'm-30', name: '배지혁', phone: '', division: '일반', memberNumber: '030' },
-  { id: 'm-31', name: '서영진', phone: '', division: '일반', memberNumber: '031' },
-  { id: 'm-32', name: '서예찬', phone: '', division: '일반', memberNumber: '032' },
-  { id: 'm-33', name: '서재원', phone: '', division: '일반', memberNumber: '033' },
-  { id: 'm-34', name: '서재원w', phone: '', division: '일반', memberNumber: '034' },
-  { id: 'm-35', name: '석영수', phone: '', division: '일반', memberNumber: '035' },
-  { id: 'm-36', name: '송인한', phone: '', division: '일반', memberNumber: '036' },
-  { id: 'm-37', name: '송준민', phone: '', division: '일반', memberNumber: '037' },
-  { id: 'm-38', name: '신민철', phone: '', division: '일반', memberNumber: '038' },
-  { id: 'm-39', name: '신성화', phone: '', division: '일반', memberNumber: '039' },
-  { id: 'm-40', name: '신해련', phone: '', division: '일반', memberNumber: '040' },
-  { id: 'm-41', name: '염규생', phone: '', division: '일반', memberNumber: '041' },
-  { id: 'm-42', name: '오승찬', phone: '', division: '일반', memberNumber: '042' },
-  { id: 'm-43', name: '온재승', phone: '', division: '일반', memberNumber: '043' },
-  { id: 'm-44', name: '유경일', phone: '', division: '일반', memberNumber: '044' },
-  { id: 'm-45', name: '유봉수', phone: '', division: '일반', memberNumber: '045' },
-  { id: 'm-46', name: '윤찬솔', phone: '', division: '일반', memberNumber: '046' },
-  { id: 'm-47', name: '은희광', phone: '', division: '일반', memberNumber: '047' },
-  { id: 'm-48', name: '이경훈', phone: '', division: '일반', memberNumber: '048' },
-  { id: 'm-49', name: '이계현', phone: '', division: '일반', memberNumber: '049' },
-  { id: 'm-50', name: '이병훈', phone: '', division: '일반', memberNumber: '050' },
-  { id: 'm-51', name: '이성훈', phone: '', division: '일반', memberNumber: '051' },
-  { id: 'm-52', name: '이정식', phone: '', division: '일반', memberNumber: '052' },
-  { id: 'm-53', name: '이종선', phone: '', division: '일반', memberNumber: '053' },
-  { id: 'm-54', name: '이창민', phone: '', division: '일반', memberNumber: '054' },
-  { id: 'm-55', name: '이충효', phone: '', division: '일반', memberNumber: '055' },
-  { id: 'm-56', name: '임강문', phone: '', division: '일반', memberNumber: '056' },
-  { id: 'm-57', name: '임상섭', phone: '', division: '일반', memberNumber: '057' },
-  { id: 'm-58', name: '임태승', phone: '', division: '일반', memberNumber: '058' },
-  { id: 'm-59', name: '장종석', phone: '', division: '일반', memberNumber: '059' },
-  { id: 'm-60', name: '전만국', phone: '', division: '일반', memberNumber: '060' },
-  { id: 'm-61', name: '전훈', phone: '', division: '일반', memberNumber: '061' },
-  { id: 'm-62', name: '정재용', phone: '', division: '일반', memberNumber: '062' },
-  { id: 'm-63', name: '정진안', phone: '', division: '일반', memberNumber: '063' },
-  { id: 'm-64', name: '정현욱', phone: '', division: '일반', memberNumber: '064' },
-  { id: 'm-65', name: '정홍모', phone: '', division: '일반', memberNumber: '065' },
-  { id: 'm-66', name: '조우영', phone: '', division: '일반', memberNumber: '066' },
-  { id: 'm-67', name: '천승진', phone: '', division: '일반', memberNumber: '067' },
-  { id: 'm-68', name: '최규성', phone: '', division: '일반', memberNumber: '068' },
-  { id: 'm-69', name: '최수민', phone: '', division: '일반', memberNumber: '069' },
-  { id: 'm-70', name: '편보성', phone: '', division: '일반', memberNumber: '070' },
-  { id: 'm-71', name: '한언석', phone: '', division: '일반', memberNumber: '071' },
-  { id: 'm-72', name: '현대삼', phone: '', division: '일반', memberNumber: '072' },
-  { id: 'm-73', name: '홍성완', phone: '', division: '일반', memberNumber: '073' },
+  { id: 'm-1', name: '강명규', phone: '010-7569-1939', division: '금배부', memberNumber: '001', notes: '62.11.19 / 효자동' },
+  { id: 'm-2', name: '강석원', phone: '010-2252-2214', division: '동배부', memberNumber: '002', notes: '88.01.16 / 효자동' },
+  { id: 'm-3', name: '강운석', phone: '010-3689-1407', division: '동배부', memberNumber: '003', notes: '60.02.25 / 모악산자락길' },
+  { id: 'm-4', name: '강전성', phone: '010-2280-1939', division: '동배부', memberNumber: '004', notes: '97.04.20 / 효자동' },
+  { id: 'm-5', name: '고광직', phone: '010-8645-7155', division: '은배부', memberNumber: '005', notes: '66.01.22 / 삼천동' },
+  { id: 'm-6', name: '권용국', phone: '010-6375-0436', division: '동배부', memberNumber: '006', notes: '62.09.03 / 삼천동' },
+  { id: 'm-7', name: '김동찬', phone: '010-6423-0780', division: '금배부', memberNumber: '007', notes: '89.12.22 / 세병로' },
+  { id: 'm-8', name: '김선경', phone: '010-2657-6545', division: '동배부', memberNumber: '008', notes: '77.07.11 / 효천중앙로' },
+  { id: 'm-9', name: '김영수', phone: '010-5088-0507', division: '동배부', memberNumber: '009', notes: '71.01.10 / 우전로' },
+  { id: 'm-10', name: '김영현', phone: '', division: '동배부', memberNumber: '010' },
+  { id: 'm-11', name: '김요셉', phone: '010-6484-5778', division: '은배부', memberNumber: '011', notes: '85.12.23 / 효자동' },
+  { id: 'm-12', name: '김일태', phone: '010-3673-3295', division: '동배부', memberNumber: '012', notes: '63.12.28 / 용머리로' },
+  { id: 'm-13', name: '김재선', phone: '010-5155-5597', division: '동배부', memberNumber: '013', notes: '57.07.14 / 평화동' },
+  { id: 'm-14', name: '김준관', phone: '010-2408-7242', division: '동배부', memberNumber: '014', notes: '57.08.06 / 수송동' },
+  { id: 'm-15', name: '김준동', phone: '010-7676-6189', division: '동배부', memberNumber: '015', notes: '91.01.22 / 중화산동' },
+  { id: 'm-16', name: '김진규', phone: '010-8470-3397', division: '동배부', memberNumber: '016', notes: '86.10.06 / 효자동' },
+  { id: 'm-17', name: '김태균', phone: '010-4652-0872', division: '금배부', memberNumber: '017', notes: '80.10.02 / 효자동' },
+  { id: 'm-18', name: '김한진', phone: '', division: '동배부', memberNumber: '018' },
+  { id: 'm-19', name: '김현우', phone: '010-4291-1151', division: '동배부', memberNumber: '019', notes: '89.06.20 / 효자동' },
+  { id: 'm-20', name: '문범준', phone: '010-4118-2385', division: '은배부', memberNumber: '020', notes: '92.05.22 / 삼례읍' },
+  { id: 'm-21', name: '문현덕', phone: '010-4930-6343', division: '동배부', memberNumber: '021', notes: '93.12.22 / 효자동' },
+  { id: 'm-22', name: '박공래', phone: '010-9557-8301', division: '동배부', memberNumber: '022', notes: '57.08.06 / 봉남면' },
+  { id: 'm-23', name: '박광전', phone: '010-9557-8301', division: '동배부', memberNumber: '023', notes: '66.11.20' },
+  { id: 'm-24', name: '박력', phone: '010-2955-0560', division: '동배부', memberNumber: '024', notes: '평화동' },
+  { id: 'm-25', name: '박의경', phone: '010-3713-1235', division: '금배부', memberNumber: '025', notes: '69.04.29 / 삼천동' },
+  { id: 'm-26', name: '박정태', phone: '010-9366-6550', division: '동배부', memberNumber: '026', notes: '93.08.11 / 송천동' },
+  { id: 'm-27', name: '배동연', phone: '010-2684-1508', division: '금배부', memberNumber: '027', notes: '58.04.14 / 효자동' },
+  { id: 'm-28', name: '배정민', phone: '010-4059-0021', division: '금배부', memberNumber: '028', notes: '76.09.23 / 삼천동' },
+  { id: 'm-29', name: '배지혁', phone: '010-5199-7538', division: '동배부', memberNumber: '029', notes: '91.12.14' },
+  { id: 'm-30', name: '서영진', phone: '010-5024-1507', division: '동배부', memberNumber: '030' },
+  { id: 'm-31', name: '서예찬', phone: '010-8363-0275', division: '동배부', memberNumber: '031', notes: '07.03.18 / 만성동' },
+  { id: 'm-32', name: '서재원', phone: '010-4654-9081', division: '동배부', memberNumber: '032', notes: '76.11.21 / 만성동' },
+  { id: 'm-33', name: '석영수', phone: '', division: '동배부', memberNumber: '033' },
+  { id: 'm-34', name: '송인한', phone: '010-3650-9524', division: '동배부', memberNumber: '034', notes: '52.03.25 / 서완산동' },
+  { id: 'm-35', name: '송준민', phone: '010-3369-8775', division: '동배부', memberNumber: '035', notes: '91.08.09 / 송천동' },
+  { id: 'm-36', name: '신민철', phone: '010-4599-6960', division: '동배부', memberNumber: '036', notes: '80.07.29 / 완산구' },
+  { id: 'm-37', name: '신성화', phone: '010-8644-2546', division: '금배부', memberNumber: '037', notes: '88.05.25 / 효자동' },
+  { id: 'm-38', name: '신해련', phone: '010-8742-6113', division: '금배부', memberNumber: '038', notes: '82.02.10' },
+  { id: 'm-39', name: '염규생', phone: '010-7170-6595', division: '금배부', memberNumber: '039', notes: '80.09.13 / 삼천동' },
+  { id: 'm-40', name: '오승찬', phone: '010-3857-1032', division: '동배부', memberNumber: '040', notes: '85.12.23 / 효자동' },
+  { id: 'm-41', name: '온재승', phone: '010-4105-3256', division: '동배부', memberNumber: '041', notes: '79.06.26 / 만성동' },
+  { id: 'm-42', name: '유경일', phone: '010-3583-2133', division: '금배부', memberNumber: '042', notes: '79.06.06 / 만성동' },
+  { id: 'm-43', name: '윤찬솔', phone: '010-3369-8775', division: '동배부', memberNumber: '043', notes: '87.03.26 / 안행로' },
+  { id: 'm-44', name: '은희광', phone: '010-2621-6732', division: '동배부', memberNumber: '044', notes: '60.07.05 / 삼천동' },
+  { id: 'm-45', name: '이경훈', phone: '010-3675-0854', division: '동배부', memberNumber: '045', notes: '80.04.03 / 평화동' },
+  { id: 'm-46', name: '이계현', phone: '010-2042-1777', division: '동배부', memberNumber: '046', notes: '60.03.16 / 평화동' },
+  { id: 'm-47', name: '이병훈', phone: '010-3190-6959', division: '동배부', memberNumber: '047', notes: '79.11.23 / 평화동' },
+  { id: 'm-48', name: '이성훈', phone: '010-4548-3938', division: '동배부', memberNumber: '048', notes: '85.04.23 / 효자동' },
+  { id: 'm-49', name: '이종선', phone: '010-3653-3917', division: '은배부', memberNumber: '049', notes: '64.04.05 / 삼천동' },
+  { id: 'm-50', name: '이창민', phone: '010-8613-9653', division: '동배부', memberNumber: '050', notes: '86.02.04 / 효자동' },
+  { id: 'm-51', name: '이충효', phone: '010-6635-4757', division: '금배부', memberNumber: '051', notes: '82.12.16 / 장동' },
+  { id: 'm-52', name: '임강문', phone: '010-6297-2004', division: '동배부', memberNumber: '052', notes: '82.10.21 / 효자동' },
+  { id: 'm-53', name: '임상섭', phone: '010-6653-0028', division: '은배부', memberNumber: '053', notes: '89.06.29 / 백구면' },
+  { id: 'm-54', name: '임태승', phone: '010-2070-6359', division: '동배부', memberNumber: '054', notes: '75.12.24 / 이서면' },
+  { id: 'm-55', name: '장종석', phone: '010-3678-0847', division: '동배부', memberNumber: '055', notes: '63.04.28 / 삼천동' },
+  { id: 'm-56', name: '전만국', phone: '010-4406-7503', division: '금배부', memberNumber: '056', notes: '75.05.24 / 서신동' },
+  { id: 'm-57', name: '전훈', phone: '010-3680-2416', division: '동배부', memberNumber: '057', notes: '72.06.06 / 세내로' },
+  { id: 'm-58', name: '정재용', phone: '010-5101-9252', division: '은배부', memberNumber: '058', notes: '94.01.16 / 송천동' },
+  { id: 'm-59', name: '정진안', phone: '010-2057-5422', division: '동배부', memberNumber: '059', notes: '66.06.10 / 서신동' },
+  { id: 'm-60', name: '정현욱', phone: '010-5002-7007', division: '동배부', memberNumber: '060', notes: '76.10.11 / 호암로' },
+  { id: 'm-61', name: '정홍모', phone: '010-2484-8431', division: '동배부', memberNumber: '061', notes: '63.06.23 / 효자동' },
+  { id: 'm-62', name: '조우영', phone: '010-9476-8380', division: '은배부', memberNumber: '062', notes: '62.04.07 / 서신동' },
+  { id: 'm-63', name: '천승진', phone: '010-9616-3933', division: '은배부', memberNumber: '063', notes: '88.09.24 / 서신동' },
+  { id: 'm-64', name: '최규성', phone: '010-8640-8828', division: '동배부', memberNumber: '064', notes: '52.05.20 / 삼천동' },
+  { id: 'm-65', name: '최수민', phone: '010-6632-8366', division: '동배부', memberNumber: '065', notes: '91.03.02 / 삼천동' },
+  { id: 'm-66', name: '편보성', phone: '010-8626-9899', division: '동배부', memberNumber: '066' },
+  { id: 'm-67', name: '현대삼', phone: '', division: '동배부', memberNumber: '067' },
+  { id: 'm-68', name: '홍성완', phone: '010-6366-1832', division: '동배부', memberNumber: '068', notes: '76.01.06 / 덕진동' },
 ];
 
 export const HANWOOLIM_CLUB_MEMBERS: ClubMember[] = RAW_HANWOOLIM_CLUB_MEMBERS.map((m) => {
@@ -114,149 +109,31 @@ export const HANWOOLIM_CLUB_MEMBERS: ClubMember[] = RAW_HANWOOLIM_CLUB_MEMBERS.m
 
 export const SAMPLE_CLUB_MEMBERS = HANWOOLIM_CLUB_MEMBERS;
 
-// 한울림 회원 명부 기반 기본 대회 참석자 (가나다 오름차순, 비고란 지원)
-const RAW_INITIAL_PARTICIPANTS: Participant[] = [
-  {
-    id: 'p-1',
-    name: '강명규',
-    phone: '',
-    division: '일반',
+// 한울림 회원 명부 기반 기본 대회 참석자 68명 전체 (공식 마스터 DB 연동)
+const RAW_INITIAL_PARTICIPANTS: Participant[] = RAW_HANWOOLIM_CLUB_MEMBERS.map((m, idx) => {
+  const g = findMemberGradeInfo(m.name);
+  return {
+    id: `p-${idx + 1}`,
+    name: m.name,
+    phone: m.phone || '',
+    division: g?.division || m.division || '동배부',
     group: '',
     checked: false,
     checkedAt: null,
     items: {},
-    notes: '100 (L)',
-  },
-  {
-    id: 'p-2',
-    name: '강석원',
-    phone: '',
-    division: '일반',
-    group: '',
-    checked: true,
-    checkedAt: '18:55',
-    items: {},
-    notes: '100 (L)',
-  },
-  {
-    id: 'p-3',
-    name: '강운석',
-    phone: '',
-    division: '일반',
-    group: '',
-    checked: false,
-    checkedAt: null,
-    items: {},
-    notes: '100 (L)',
-  },
-  {
-    id: 'p-4',
-    name: '강전성',
-    phone: '',
-    division: '일반',
-    group: '',
-    checked: false,
-    checkedAt: null,
-    items: {},
-    notes: '100 (L)',
-  },
-  {
-    id: 'p-5',
-    name: '고광직',
-    phone: '',
-    division: '일반',
-    group: '',
-    checked: false,
-    checkedAt: null,
-    items: {},
-    notes: '105 (XL)',
-  },
-  {
-    id: 'p-6',
-    name: '권용국',
-    phone: '',
-    division: '일반',
-    group: '',
-    checked: false,
-    checkedAt: null,
-    items: {},
-    notes: '110 (2XL)',
-  },
-  {
-    id: 'p-7',
-    name: '김동찬',
-    phone: '',
-    division: '일반',
-    group: '',
-    checked: false,
-    checkedAt: null,
-    items: {},
-    notes: '105 (XL)',
-  },
-  {
-    id: 'p-8',
-    name: '김선경',
-    phone: '',
-    division: '일반',
-    group: '',
-    checked: true,
-    checkedAt: '15:51',
-    items: {},
-    notes: '100 (L)',
-  },
-  {
-    id: 'p-9',
-    name: '김영수',
-    phone: '',
-    division: '일반',
-    group: '',
-    checked: false,
-    checkedAt: null,
-    items: {},
-    notes: '100 (L)',
-  },
-  {
-    id: 'p-10',
-    name: '김영현',
-    phone: '',
-    division: '일반',
-    group: '',
-    checked: false,
-    checkedAt: null,
-    items: {},
-    notes: '105 (XL)',
-  },
-  {
-    id: 'p-11',
-    name: '김요셉',
-    phone: '',
-    division: '일반',
-    group: '',
-    checked: false,
-    checkedAt: null,
-    items: {},
-    notes: '105 (XL)',
-  },
-  {
-    id: 'p-12',
-    name: '배지혁',
-    phone: '',
-    division: '일반',
-    group: '',
-    checked: false,
-    checkedAt: null,
-    items: {},
-    notes: '100 (L)',
-  },
-];
+    notes: m.notes || '',
+    grade: g?.grade || '동',
+    score: g?.score ?? 1,
+  };
+});
 
 export const INITIAL_PARTICIPANTS: Participant[] = RAW_INITIAL_PARTICIPANTS.map((p) => {
   const g = findMemberGradeInfo(p.name);
   return {
     ...p,
-    grade: g?.grade,
-    score: g?.score,
-    division: g?.division || p.division,
+    grade: g?.grade || p.grade || '동',
+    score: g?.score ?? p.score ?? 1,
+    division: g?.division || p.division || '동배부',
   };
 });
 
@@ -302,15 +179,14 @@ export function saveEventConfig(config: EventConfig): void {
 export function loadParticipants(): Participant[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.PARTICIPANTS);
-    const isV5GradesSynced = localStorage.getItem('tennis_checkin_roster_grades_synced_v5') === 'true';
 
     if (saved !== null) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        const allUnchecked = parsed.every((p: any) => !p.checked);
         // Sanitize legacy mock data (gift, lunch, fee) if present from previous samples
         const cleaned = parsed.map((p: any) => {
           let items = p.items || {};
-          // Check if items only contain the old default keys
           const keys = Object.keys(items);
           const isLegacyDefaultItems =
             keys.length > 0 && keys.every((k) => ['gift', 'lunch', 'fee', 'prize'].includes(k));
@@ -328,44 +204,33 @@ export function loadParticipants(): Participant[] {
             group = '';
           }
 
-          // ★ 구글 시트 '회원명부(정회원)' F열(점수)/G열(등급) 최신 마스터 데이터 우선 적용
-          const officialGrade = findMemberGradeInfo(p.name);
-          let finalGrade = p.grade;
-          let finalScore = p.score;
-          let finalDivision = p.division;
+          // ★ 구글 시트 '회원명부(정회원)' 공식 마스터 등급/점수/부수 100% 매핑
+          const official = findMemberGradeInfo(p.name);
+          const finalGrade = official?.grade || p.grade || '동';
+          const finalScore = official?.score ?? p.score ?? 1;
+          const finalDivision = official?.division || (p.division && p.division !== '일반' ? p.division : '동배부');
+          const clubMember = RAW_HANWOOLIM_CLUB_MEMBERS.find((m) => m.name === p.name);
+          const finalPhone = p.phone || clubMember?.phone || '';
 
-          // v5 업그레이드 전이거나 공식 마스터 데이터가 존재하면 공식 등급으로 자동 동기화
-          if (!isV5GradesSynced || !finalGrade || (officialGrade && (finalGrade === '은A' || finalGrade === '은B' || finalGrade === '금D') && officialGrade.grade !== finalGrade)) {
-            if (officialGrade) {
-              finalGrade = officialGrade.grade;
-              finalScore = officialGrade.score;
-              finalDivision = officialGrade.division;
-            }
-          }
-
-          if (!finalGrade && officialGrade) {
-            finalGrade = officialGrade.grade;
-            finalScore = officialGrade.score;
-            finalDivision = officialGrade.division;
-          }
+          // 수령완료(연두색) 상태 유지
+          const finalChecked = !!p.checked;
+          const finalCheckedAt = p.checkedAt || (finalChecked ? '수령완료' : null);
 
           return {
             ...p,
+            checked: finalChecked,
+            checkedAt: finalCheckedAt,
+            phone: finalPhone,
             group,
             items,
-            notes,
+            notes: p.notes || clubMember?.notes || '',
             grade: finalGrade,
             score: finalScore,
-            division: finalDivision || '일반',
+            division: finalDivision,
           };
         });
 
-        // 1회 동기화 완료 마킹
-        if (!isV5GradesSynced) {
-          localStorage.setItem('tennis_checkin_roster_grades_synced_v5', 'true');
-          localStorage.setItem(STORAGE_KEYS.PARTICIPANTS, JSON.stringify(cleaned));
-        }
-
+        localStorage.setItem(STORAGE_KEYS.PARTICIPANTS, JSON.stringify(cleaned));
         return [...cleaned].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
       }
     }
@@ -373,7 +238,6 @@ export function loadParticipants(): Participant[] {
     console.error('Failed to load participants:', e);
   }
   
-  localStorage.setItem('tennis_checkin_roster_grades_synced_v5', 'true');
   return [...INITIAL_PARTICIPANTS].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
 }
 
@@ -407,6 +271,7 @@ export function syncParticipantsWithSheetGrades(
     return p;
   });
 
+  saveBulkCustomMemberGrades(gradeData);
   saveParticipants(updated);
   return updated;
 }

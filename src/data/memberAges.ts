@@ -24,7 +24,7 @@ export const HANWOOLIM_BIRTH_YEARS_DATA: MemberYearGroup[] = [
   { year: 1969, names: ['박의경'] },
   { year: 1971, names: ['김영수'] },
   { year: 1972, names: ['전훈'] },
-  { year: 1975, names: ['임태승', '전민국'] },
+  { year: 1975, names: ['임태승', '전만국'] },
   { year: 1976, names: ['배정민', '서재원', '정현욱', '홍성완'] },
   { year: 1977, names: ['김선경'] },
   { year: 1979, names: ['온재승', '유경일', '이병훈'] },

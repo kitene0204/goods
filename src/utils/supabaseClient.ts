@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Participant } from '../types';
+import { findMemberGradeInfo } from '../data/memberGrades';
 
 export const DEFAULT_SUPABASE_URL = 'https://ofmfkingnhykhwoopnfr.supabase.co';
 export const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_Pj1WLAlRJdsobbMZ1pdR6g_Var70TvX';
@@ -71,10 +72,15 @@ export function getSupabaseClient(): SupabaseClient | null {
 
 // Convert Participant to Supabase row format
 export function participantToDbRow(p: Participant) {
+  const gradeInfo = findMemberGradeInfo(p.name, p.grade, p.score);
+  const resolvedDivision = (p.division && p.division !== '일반')
+    ? p.division
+    : (gradeInfo?.division || '동배부');
+
   return {
     id: p.id,
     name: p.name,
-    division: p.division || '일반',
+    division: resolvedDivision,
     phone: p.phone || '',
     group: p.group || '',
     checked: !!p.checked,
@@ -82,7 +88,11 @@ export function participantToDbRow(p: Participant) {
     is_proxy: !!p.isProxy,
     proxy_name: p.proxyName || '',
     notes: p.notes || '',
-    items: p.items || {},
+    items: {
+      ...(typeof p.items === 'object' && p.items !== null ? p.items : {}),
+      ...(p.grade ? { __grade: p.grade } : {}),
+      ...(p.score !== undefined ? { __score: p.score } : {}),
+    },
     raffle_winner_prize: p.raffleWinnerPrize || '',
     updated_at: new Date().toISOString(),
   };
@@ -90,10 +100,26 @@ export function participantToDbRow(p: Participant) {
 
 // Convert Supabase row to Participant
 export function dbRowToParticipant(row: any): Participant {
+  const name = String(row.name || '').trim();
+  const rawItems = (typeof row.items === 'object' && row.items !== null) ? { ...row.items } : {};
+  const storedGrade = rawItems.__grade;
+  const storedScore = rawItems.__score;
+  delete rawItems.__grade;
+  delete rawItems.__score;
+
+  const gradeInfo = findMemberGradeInfo(name, storedGrade, storedScore);
+  const finalGrade = storedGrade || gradeInfo?.grade || '동';
+  const finalScore = storedScore !== undefined ? (typeof storedScore === 'number' ? storedScore : parseInt(String(storedScore), 10) || 1) : (gradeInfo?.score ?? 1);
+  const resolvedDivision = (row.division && row.division !== '일반')
+    ? row.division
+    : (gradeInfo?.division || (finalGrade.startsWith('금') ? '금배부' : finalGrade.startsWith('은') ? '은배부' : '동배부'));
+
   return {
     id: String(row.id),
-    name: String(row.name || ''),
-    division: row.division || '일반',
+    name,
+    division: resolvedDivision,
+    grade: finalGrade,
+    score: finalScore,
     phone: row.phone || '',
     group: row.group || '',
     checked: Boolean(row.checked),
@@ -101,7 +127,7 @@ export function dbRowToParticipant(row: any): Participant {
     isProxy: Boolean(row.is_proxy),
     proxyName: row.proxy_name || '',
     notes: row.notes || '',
-    items: typeof row.items === 'object' && row.items !== null ? row.items : {},
+    items: rawItems,
     raffleWinnerPrize: row.raffle_winner_prize || '',
   };
 }

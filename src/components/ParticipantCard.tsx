@@ -43,6 +43,7 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [isQuickGradeModalOpen, setIsQuickGradeModalOpen] = useState(false);
   const [notesDraft, setNotesDraft] = useState(participant.notes || '');
   const [proxyDraft, setProxyDraft] = useState(participant.proxyName || '');
   const [isProxyDraft, setIsProxyDraft] = useState(participant.isProxy || false);
@@ -50,9 +51,174 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
   const displayIndex = String(index + 1).padStart(2, '0');
   const ageInfo = findMemberAgeInfo(participant.name);
   const gradeInfo = findMemberGradeInfo(participant.name, participant.grade, participant.score);
+  const effectiveDivision = (participant.division && participant.division !== '일반')
+    ? participant.division
+    : (gradeInfo?.division || '동배부');
 
   const [gradeDraft, setGradeDraft] = useState(participant.grade || gradeInfo?.grade || '');
-  const [scoreDraft, setScoreDraft] = useState<number | string>(participant.score ?? gradeInfo?.score ?? 4);
+  const [scoreDraft, setScoreDraft] = useState<number | string>(participant.score ?? gradeInfo?.score ?? 1);
+
+  const handleSelectQuickGrade = (grade: string, score: number) => {
+    const newDivision = grade.startsWith('금')
+      ? '금배부'
+      : grade.startsWith('은')
+      ? '은배부'
+      : grade.startsWith('동')
+      ? '동배부'
+      : effectiveDivision;
+
+    onUpdateParticipant(participant.id, {
+      grade,
+      score,
+      division: newDivision,
+    });
+    setGradeDraft(grade);
+    setScoreDraft(score);
+    setIsQuickGradeModalOpen(false);
+  };
+
+  const renderQuickGradeModal = () => {
+    if (!isQuickGradeModalOpen) return null;
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsQuickGradeModalOpen(false);
+        }}
+      >
+        <div
+          className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-5 border border-slate-200 text-slate-900 space-y-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <div className="text-base font-black text-slate-900 flex items-center gap-1.5">
+                <span>🏅 {participant.name} 회원 등급 변경</span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                구글 시트 [회원명부(정회원)] F·G열 기준 즉시 반영
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsQuickGradeModalOpen(false)}
+              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 text-sm font-bold"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
+            <span className="text-slate-600 font-medium">현재 설정된 등급:</span>
+            <span className="font-black text-slate-900">
+              {gradeInfo ? `${gradeInfo.label} · ${effectiveDivision}` : '미설정'}
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <div className="text-[11px] font-bold text-amber-700 mb-1 flex items-center gap-1">
+                <span>🥇 금배부 (5~8점)</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleSelectQuickGrade('금B', 8)}
+                  className="p-2.5 rounded-xl text-xs font-black bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 transition-all flex items-center justify-between active:scale-95 cursor-pointer"
+                >
+                  <span>금B</span>
+                  <span className="text-[11px] font-mono opacity-80">8점</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectQuickGrade('금C', 7)}
+                  className="p-2.5 rounded-xl text-xs font-black bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 transition-all flex items-center justify-between active:scale-95 cursor-pointer"
+                >
+                  <span>금C</span>
+                  <span className="text-[11px] font-mono opacity-80">7점</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectQuickGrade('금D', 6)}
+                  className="p-2.5 rounded-xl text-xs font-black bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 transition-all flex items-center justify-between active:scale-95 cursor-pointer"
+                >
+                  <span>금D</span>
+                  <span className="text-[11px] font-mono opacity-80">6점</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectQuickGrade('금E', 5)}
+                  className="p-2.5 rounded-xl text-xs font-black bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 transition-all flex items-center justify-between active:scale-95 cursor-pointer"
+                >
+                  <span>금E</span>
+                  <span className="text-[11px] font-mono opacity-80">5점</span>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
+                <span>🥈 은배부 (3~4점)</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleSelectQuickGrade('은A', 4)}
+                  className="p-2.5 rounded-xl text-xs font-black bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 transition-all flex items-center justify-between active:scale-95 cursor-pointer"
+                >
+                  <span>은A</span>
+                  <span className="text-[11px] font-mono opacity-80">4점</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectQuickGrade('은B', 3)}
+                  className="p-2.5 rounded-xl text-xs font-black bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 transition-all flex items-center justify-between active:scale-95 cursor-pointer"
+                >
+                  <span>은B</span>
+                  <span className="text-[11px] font-mono opacity-80">3점</span>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[11px] font-bold text-orange-800 mb-1 flex items-center gap-1">
+                <span>🥉 동배부 (1~2점)</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleSelectQuickGrade('동', 2)}
+                  className="p-2.5 rounded-xl text-xs font-black bg-orange-50 hover:bg-orange-100 text-orange-950 border border-orange-300 transition-all flex items-center justify-between active:scale-95 cursor-pointer"
+                >
+                  <span>동 (2점)</span>
+                  <span className="text-[11px] font-mono opacity-80">2점</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectQuickGrade('동', 1)}
+                  className="p-2.5 rounded-xl text-xs font-black bg-orange-50 hover:bg-orange-100 text-orange-950 border border-orange-300 transition-all flex items-center justify-between active:scale-95 cursor-pointer"
+                >
+                  <span>동 (1점)</span>
+                  <span className="text-[11px] font-mono opacity-80">1점</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setIsQuickGradeModalOpen(false)}
+              className="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl cursor-pointer"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const getDivisionBadgeColor = (division: string) => {
     switch (division) {
@@ -72,12 +238,22 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
   };
 
   const handleSaveDetails = () => {
+    const cleanGrade = gradeDraft.trim();
+    const newDivision = cleanGrade.startsWith('금')
+      ? '금배부'
+      : cleanGrade.startsWith('은')
+      ? '은배부'
+      : cleanGrade.startsWith('동')
+      ? '동배부'
+      : effectiveDivision;
+
     onUpdateParticipant(participant.id, {
       notes: notesDraft.trim(),
       isProxy: isProxyDraft,
       proxyName: isProxyDraft ? proxyDraft.trim() : '',
-      grade: gradeDraft.trim(),
+      grade: cleanGrade,
       score: scoreDraft,
+      division: newDivision,
     });
     setIsEditingNotes(false);
   };
@@ -97,13 +273,24 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
       >
         {/* Top No & Division Tag */}
         <div className="flex items-center justify-between">
-          <p className={`text-xs font-bold uppercase tracking-wider ${participant.checked ? 'opacity-85 text-white' : 'text-slate-400'}`}>
-            No. {displayIndex}
-          </p>
-          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-            participant.checked ? 'bg-lime-600 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'
+          <div className="flex items-center gap-1.5">
+            <p className={`text-xs font-bold uppercase tracking-wider ${participant.checked ? 'opacity-90 text-white' : 'text-slate-400'}`}>
+              No. {displayIndex}
+            </p>
+            {participant.checked && (
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white text-emerald-950 shadow-xs inline-flex items-center gap-1">
+                <span>🌿</span>
+                <Check className="w-2.5 h-2.5 stroke-[3]" />
+                <span>수령완료</span>
+              </span>
+            )}
+          </div>
+          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+            participant.checked 
+              ? 'bg-lime-700/80 text-white border-lime-400/40' 
+              : getDivisionBadgeColor(effectiveDivision)
           }`}>
-            {participant.division || (gradeInfo ? gradeInfo.division : '일반')}
+            {effectiveDivision}
           </span>
         </div>
 
@@ -127,15 +314,21 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
               </span>
             )}
             {gradeInfo && (
-              <span
-                className={`inline-flex items-center gap-0.5 text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0 shadow-2xs ${getGradeBadgeStyle(
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsQuickGradeModalOpen(true);
+                }}
+                className={`inline-flex items-center gap-1 text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0 shadow-2xs hover:scale-105 active:scale-95 transition-all cursor-pointer ${getGradeBadgeStyle(
                   gradeInfo.tier,
                   participant.checked
                 )}`}
-                title={`회원 등급: ${gradeInfo.grade} (${gradeInfo.score}점)`}
+                title={`회원 등급: ${gradeInfo.grade} (${gradeInfo.score}점) - 터치하여 등급 변경`}
               >
                 <span>{gradeInfo.label}</span>
-              </span>
+                <Edit3 className="w-2.5 h-2.5 opacity-60" />
+              </button>
             )}
           </div>
           {(() => {
@@ -193,6 +386,7 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
             </>
           )}
         </div>
+        {renderQuickGradeModal()}
       </div>
     );
   }
@@ -201,9 +395,9 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
   return (
     <div
       id={`participant-card-${participant.id}`}
-      className={`rounded-2xl border transition-all duration-150 overflow-hidden ${
+      className={`rounded-2xl border-2 transition-all duration-150 overflow-hidden ${
         participant.checked
-          ? 'bg-lime-50/60 border-lime-400 shadow-sm'
+          ? 'bg-gradient-to-r from-lime-100/95 via-emerald-100/70 to-lime-50 border-lime-500 shadow-sm'
           : 'bg-white hover:bg-slate-50/80 border-slate-200 hover:border-slate-300 shadow-sm'
       }`}
     >
@@ -231,9 +425,16 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
           {/* Details */}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-black text-slate-900 tracking-tight text-lg sm:text-xl">
+              <span className={`font-black tracking-tight text-lg sm:text-xl ${participant.checked ? 'text-emerald-950' : 'text-slate-900'}`}>
                 {participant.name}
               </span>
+
+              {participant.checked && (
+                <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-lime-500 text-slate-950 shadow-2xs inline-flex items-center gap-1">
+                  <span>🌿</span>
+                  <span>수령완료</span>
+                </span>
+              )}
 
               {ageInfo && (
                 <span
@@ -246,24 +447,30 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
               )}
 
               {gradeInfo && (
-                <span
-                  className={`inline-flex items-center gap-0.5 text-[11px] font-black px-1.5 py-0.5 rounded-md ${getGradeBadgeStyle(
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsQuickGradeModalOpen(true);
+                  }}
+                  className={`inline-flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-md hover:scale-105 active:scale-95 transition-all cursor-pointer ${getGradeBadgeStyle(
                     gradeInfo.tier,
                     false
                   )}`}
-                  title={`회원 등급: ${gradeInfo.grade} (${gradeInfo.score}점)`}
+                  title={`회원 등급: ${gradeInfo.grade} (${gradeInfo.score}점) - 터치하여 등급 변경`}
                 >
                   <span>{gradeInfo.label}</span>
-                </span>
+                  <Edit3 className="w-2.5 h-2.5 opacity-60" />
+                </button>
               )}
 
               {/* Division Badge */}
               <span
                 className={`text-[11px] px-2 py-0.5 rounded-md border font-bold ${getDivisionBadgeColor(
-                  participant.division || (gradeInfo ? gradeInfo.division : '일반')
+                  effectiveDivision
                 )}`}
               >
-                {participant.division || (gradeInfo ? gradeInfo.division : '일반')}
+                {effectiveDivision}
               </span>
 
               {participant.group && (
@@ -510,6 +717,7 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
           </div>
         </div>
       )}
+      {renderQuickGradeModal()}
     </div>
   );
 };

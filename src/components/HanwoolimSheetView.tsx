@@ -16,10 +16,15 @@ import {
   Sparkles,
   Link2,
   Code2,
-  TableProperties
+  TableProperties,
+  Search,
+  CheckCircle2,
+  Circle,
+  Users
 } from 'lucide-react';
-import { EventConfig, MainAppTab } from '../types';
+import { EventConfig, MainAppTab, Participant } from '../types';
 import { FeeScriptPatchModal } from './FeeScriptPatchModal';
+import { findMemberGradeInfo } from '../data/memberGrades';
 
 interface HanwoolimSheetViewProps {
   config: EventConfig;
@@ -28,6 +33,9 @@ interface HanwoolimSheetViewProps {
   onSelectTab: (tab: MainAppTab) => void;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'error') => void;
   onOpenBulkPayment?: () => void;
+  participants?: Participant[];
+  onUpdateParticipants?: (updated: Participant[]) => void;
+  onOpenSyncGreenModal?: () => void;
 }
 
 export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
@@ -37,11 +45,17 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
   onSelectTab,
   onShowToast,
   onOpenBulkPayment,
+  participants = [],
+  onUpdateParticipants,
+  onOpenSyncGreenModal,
 }) => {
   const [sheetUrlInput, setSheetUrlInput] = useState(config.googleSheetUrl || '');
   const [isEditingUrl, setIsEditingUrl] = useState(!config.googleSheetUrl);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isPatchModalOpen, setIsPatchModalOpen] = useState(false);
+  const [activeSheetTab, setActiveSheetTab] = useState<'roster' | 'finance'>('roster');
+  const [rosterSearch, setRosterSearch] = useState('');
+  const [rosterFilter, setRosterFilter] = useState<'all' | 'checked' | 'unchecked'>('all');
 
   const handleSaveUrl = () => {
     const trimmed = sheetUrlInput.trim();
@@ -67,6 +81,40 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
 
   const embedUrl = config.googleSheetUrl ? getEmbedUrl(config.googleSheetUrl) : null;
 
+  // Toggle receipt directly in the sheet view
+  const handleToggleRowCheck = (id: string) => {
+    if (!onUpdateParticipants) return;
+    const updated = participants.map((p) => {
+      if (p.id === id) {
+        const nextChecked = !p.checked;
+        return {
+          ...p,
+          checked: nextChecked,
+          checkedAt: nextChecked ? (p.checkedAt || '수령완료') : null,
+        };
+      }
+      return p;
+    });
+    onUpdateParticipants(updated);
+  };
+
+  const filteredRoster = participants.filter((p) => {
+    const matchSearch = rosterSearch
+      ? p.name.toLowerCase().includes(rosterSearch.toLowerCase()) ||
+        (p.phone && p.phone.includes(rosterSearch))
+      : true;
+    const matchFilter =
+      rosterFilter === 'all'
+        ? true
+        : rosterFilter === 'checked'
+        ? p.checked
+        : !p.checked;
+    return matchSearch && matchFilter;
+  });
+
+  const greenCount = participants.filter((p) => p.checked).length;
+  const uncheckCount = participants.length - greenCount;
+
   return (
     <main className="flex-1 p-4 sm:p-6 flex flex-col space-y-4 pb-28 min-h-[calc(100vh-68px)]">
       {/* Top Banner & Header Navigation */}
@@ -78,19 +126,31 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                한울림 정보 & 2025 회계 결산 구글 시트
+                한울림 구글 시트 [회원명부 & 회계결산]
               </h2>
               <span className="text-xs font-black bg-emerald-400 text-slate-950 px-2.5 py-0.5 rounded-full shadow-2xs">
                 공식 시트
               </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-300 mt-1">
-              한울림 테니스클럽 회계 결산, 예산 현황 및 주요 내역이 기록된 구글 스프레드시트 바로가기입니다.
+              구글 시트의 [회원명부(정회원)] F·G열 등급과 연두색 수령 현황을 100% 동일하게 열람·편집합니다.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {onOpenSyncGreenModal && (
+            <button
+              id="sheet-sync-green-top-btn"
+              onClick={onOpenSyncGreenModal}
+              className="px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-lime-400/50"
+              title="구글 시트 연두색 수령자 동기화 및 직접 편집"
+            >
+              <span>🌿</span>
+              <span>연두색 수령자 동기화</span>
+            </button>
+          )}
+
           {/* Fee numeric patch button */}
           <button
             id="sheet-fee-patch-header-btn"
@@ -110,7 +170,7 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
               rel="noopener noreferrer"
               className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
             >
-              <span>구글 시트 새 탭으로 열기</span>
+              <span>시트 새 탭으로 열기</span>
               <ExternalLink className="w-4 h-4" />
             </a>
           ) : (
@@ -132,6 +192,204 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Sub Tabs: 회원명부(정회원) vs 2025 회계 결산 */}
+      <div className="flex border-b border-slate-200 bg-white rounded-2xl p-1.5 gap-2 shadow-xs border">
+        <button
+          onClick={() => setActiveSheetTab('roster')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+            activeSheetTab === 'roster'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          <span>📋 [회원명부(정회원)] 68명 명단 & 연두색 수령표</span>
+          <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${activeSheetTab === 'roster' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
+            수령: {greenCount}/{participants.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveSheetTab('finance')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+            activeSheetTab === 'finance'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span>📊 2025 회계 결산 요약표 & 시트 뷰어</span>
+        </button>
+      </div>
+
+      {activeSheetTab === 'roster' ? (
+        /* 📋 [회원명부(정회원)] 68명 명단 & 연두색 수령표 뷰 */
+        <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black text-slate-900">
+                  구글 시트 [회원명부(정회원)] 공식 명단 (68명)
+                </h3>
+                <span className="text-[11px] font-bold bg-lime-100 text-emerald-900 border border-lime-300 px-2 py-0.5 rounded-full">
+                  연두색 = 수령완료
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                행을 클릭하면 수령완료(연두색) ↔ 미수령 상태를 즉시 토글할 수 있습니다.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {onOpenSyncGreenModal && (
+                <button
+                  onClick={onOpenSyncGreenModal}
+                  className="px-3.5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                >
+                  <span>🌿</span>
+                  <span>연두색 수령자 일괄 설정/붙여넣기</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={rosterSearch}
+                onChange={(e) => setRosterSearch(e.target.value)}
+                placeholder="회원 이름 또는 전화번호 검색..."
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0">
+              <button
+                onClick={() => setRosterFilter('all')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  rosterFilter === 'all'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                전체 (68명)
+              </button>
+              <button
+                onClick={() => setRosterFilter('checked')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  rosterFilter === 'checked'
+                    ? 'bg-lime-500 text-slate-950 font-black shadow-xs'
+                    : 'text-emerald-700 hover:text-emerald-900'
+                }`}
+              >
+                🌿 연두색 수령 ({greenCount}명)
+              </button>
+              <button
+                onClick={() => setRosterFilter('unchecked')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  rosterFilter === 'unchecked'
+                    ? 'bg-slate-900 text-amber-300 font-black shadow-xs'
+                    : 'text-amber-700 hover:text-amber-900'
+                }`}
+              >
+                미수령 ({uncheckCount}명)
+              </button>
+            </div>
+          </div>
+
+          {/* Google Sheet Style Table */}
+          <div className="border border-slate-300 rounded-2xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto max-h-[560px]">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead className="bg-slate-800 text-white sticky top-0 z-10 font-bold">
+                  <tr>
+                    <th className="py-3 px-3 w-14 text-center border-r border-slate-700">A. 연번</th>
+                    <th className="py-3 px-4 border-r border-slate-700">B. 성명</th>
+                    <th className="py-3 px-4 border-r border-slate-700">C. 생년월일</th>
+                    <th className="py-3 px-4 border-r border-slate-700">D. 전화번호</th>
+                    <th className="py-3 px-4 border-r border-slate-700">E. 주소/비고</th>
+                    <th className="py-3 px-3 text-center border-r border-slate-700 bg-emerald-900/60 text-emerald-200">
+                      F. 등급(점)
+                    </th>
+                    <th className="py-3 px-3 text-center border-r border-slate-700 bg-emerald-900/60 text-emerald-200">
+                      G. 등급(금,은,동)
+                    </th>
+                    <th className="py-3 px-4 text-center bg-lime-900/50 text-lime-200">
+                      수령 현황 (연두색 표시)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 font-medium">
+                  {filteredRoster.map((p, idx) => {
+                    const gradeInfo = findMemberGradeInfo(p.name, p.grade, p.score);
+                    const origIndex = participants.findIndex((orig) => orig.id === p.id) + 1;
+                    const isChecked = !!p.checked;
+                    return (
+                      <tr
+                        key={p.id}
+                        onClick={() => handleToggleRowCheck(p.id)}
+                        className={`transition-colors cursor-pointer select-none hover:brightness-95 ${
+                          isChecked
+                            ? 'bg-[#dcfce7] text-emerald-950 font-bold border-b border-emerald-300'
+                            : 'bg-white hover:bg-slate-50 text-slate-800'
+                        }`}
+                      >
+                        <td className="py-2.5 px-3 text-center font-mono border-r border-slate-200/80">
+                          {origIndex}
+                        </td>
+                        <td className="py-2.5 px-4 font-black border-r border-slate-200/80">
+                          <div className="flex items-center gap-1.5">
+                            <span>{p.name}</span>
+                            {isChecked && (
+                              <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-lime-500 text-slate-950">
+                                수령
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-4 font-mono text-xs border-r border-slate-200/80 text-slate-600">
+                          {p.notes ? p.notes.split('/')[0]?.trim() : '-'}
+                        </td>
+                        <td className="py-2.5 px-4 font-mono text-xs border-r border-slate-200/80 text-slate-600">
+                          {p.phone || '-'}
+                        </td>
+                        <td className="py-2.5 px-4 text-xs border-r border-slate-200/80 text-slate-600 truncate max-w-[160px]">
+                          {p.notes || '-'}
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-black border-r border-slate-200/80 text-emerald-900 bg-emerald-50/50">
+                          {gradeInfo?.score ?? p.score ?? 1}점
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-black border-r border-slate-200/80 text-emerald-900 bg-emerald-50/50">
+                          {gradeInfo?.grade || p.grade || '동'}
+                        </td>
+                        <td className="py-2.5 px-4 text-center">
+                          {isChecked ? (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-lime-500 text-slate-950 font-black text-xs shadow-xs">
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              <span>수령 완료 (연두색)</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-400 font-bold text-xs">
+                              <Circle className="w-3 h-3 text-slate-300" />
+                              <span>미수령</span>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* 📊 2025 회계 결산 요약표 & 시트 뷰어 */
+        <div className="space-y-4">
 
       {/* Fee Numeric Format Helper Card */}
       <div className="bg-linear-to-r from-emerald-50 to-teal-50 border border-emerald-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-950 shadow-2xs">
@@ -384,6 +642,8 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
           >
             링크 입력하기
           </button>
+        </div>
+      )}
         </div>
       )}
 

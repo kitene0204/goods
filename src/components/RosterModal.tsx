@@ -556,10 +556,10 @@ export const RosterModal: React.FC<RosterModalProps> = ({
                   <button
                     onClick={handleLoadSampleRoster}
                     className="px-2.5 py-1 rounded-lg bg-lime-100 text-slate-900 hover:bg-lime-200 text-xs font-black cursor-pointer flex items-center gap-1 transition-colors"
-                    title="한울림 전체 회원 DB (73명) 불러오기"
+                    title="한울림 전체 회원 DB (공식 68명) 불러오기"
                   >
                     <RotateCcw className="w-3 h-3" />
-                    <span>한울림 전체 회원 (73명)</span>
+                    <span>한울림 공식 회원 (68명)</span>
                   </button>
                 </div>
               </div>

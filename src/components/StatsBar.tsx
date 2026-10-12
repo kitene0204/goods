@@ -21,6 +21,7 @@ interface StatsBarProps {
   onMarkAllChecked: () => void;
   onResetAllChecked: () => void;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'error') => void;
+  onOpenSyncGreenModal?: () => void;
 }
 
 export const StatsBar: React.FC<StatsBarProps> = ({
@@ -31,6 +32,7 @@ export const StatsBar: React.FC<StatsBarProps> = ({
   onMarkAllChecked,
   onResetAllChecked,
   onShowToast,
+  onOpenSyncGreenModal,
 }) => {
   const [copied, setCopied] = useState(false);
   const [showBatchConfirm, setShowBatchConfirm] = useState<'markAll' | 'resetAll' | null>(null);
@@ -88,7 +90,21 @@ export const StatsBar: React.FC<StatsBarProps> = ({
         </div>
 
         {/* Quick Action Buttons for Manager */}
-        <div className="flex items-center gap-2 self-end sm:self-center">
+        <div className="flex items-center gap-2 self-end sm:self-center flex-wrap">
+          {/* Sync Green Modal Button */}
+          {onOpenSyncGreenModal && (
+            <button
+              id="stats-sync-green-btn"
+              onClick={onOpenSyncGreenModal}
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 text-xs font-black transition-all active:scale-95 shadow-sm cursor-pointer ring-1 ring-lime-500/40"
+              title="구글 시트 연두색 수령자 동기화 및 직접 편집"
+            >
+              <span>🌿</span>
+              <span className="hidden sm:inline">시트 연두색 수령자 설정</span>
+              <span className="sm:hidden">수령자 설정</span>
+            </button>
+          )}
+
           {/* Kakao Copy Button */}
           <button
             id="stats-kakao-copy-btn"
@@ -192,7 +208,7 @@ export const StatsBar: React.FC<StatsBarProps> = ({
           }`}
         >
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          <span>수령 완료</span>
+          <span>🌿 연두색 수령 완료</span>
           <span className={`font-mono text-xs px-1.5 py-0.2 rounded-full ${activeFilter === 'checked' ? 'bg-lime-600 text-white font-bold' : 'bg-emerald-100 text-emerald-800'}`}>
             {checkedCount}
           </span>

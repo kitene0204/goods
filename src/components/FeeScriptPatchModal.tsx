@@ -417,7 +417,7 @@ function submitFee(a, b) { return saveData('income', a || b); }`;
                     앱 내 [다중 회원 일괄 회비 입력기] 바로 실행
                   </h4>
                   <p className="text-[11px] text-indigo-800">
-                    구글 웹앱 대신 이 앱에서 73명 전체 회원을 한눈에 검색·선택하여 오류 없이 즉시 입력할 수 있습니다.
+                    구글 웹앱 대신 이 앱에서 전체 정회원을 한눈에 검색·선택하여 오류 없이 즉시 입력할 수 있습니다.
                   </p>
                 </div>
               </div>
