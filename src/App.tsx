@@ -1050,7 +1050,7 @@ export default function App() {
           />
         ) : (
           /* Main Center Area: Check-in Stream */
-          <main className="flex-1 p-4 sm:p-6 flex flex-col space-y-4 pb-28 min-h-[calc(100vh-68px)]">
+          <main className="flex-1 p-2.5 sm:p-6 flex flex-col space-y-3 sm:space-y-4 pb-28 min-h-[calc(100vh-68px)]">
             {/* ⭐ Hanwoolim Frequent Tools Hub Banner (Prominently Eye-Catching) */}
             <HanwoolimHubBanner
               activeTab={activeMainTab}
@@ -1181,7 +1181,7 @@ export default function App() {
                 </div>
               ) : viewMode === 'grid' ? (
                 /* High-Contrast Grid Card View */
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                   {filteredParticipants.map((participant, idx) => (
                     <ParticipantCard
                       key={participant.id}

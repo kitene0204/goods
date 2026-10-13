@@ -59,6 +59,28 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
   const [gradeDraft, setGradeDraft] = useState(participant.grade || gradeInfo?.grade || '');
   const [scoreDraft, setScoreDraft] = useState<number | string>(participant.score ?? gradeInfo?.score ?? 1);
 
+  const formatShortCheckedTime = (raw?: string | null): string => {
+    if (!raw || raw === '수령완료') return '';
+    if (raw.includes('T')) {
+      try {
+        const d = new Date(raw);
+        if (!isNaN(d.getTime())) {
+          const hh = String(d.getHours()).padStart(2, '0');
+          const mm = String(d.getMinutes()).padStart(2, '0');
+          return `${hh}:${mm}`;
+        }
+      } catch {
+        return '';
+      }
+    }
+    if (/^\d{1,2}:\d{2}/.test(raw)) {
+      return raw.slice(0, 5);
+    }
+    return '';
+  };
+
+  const shortTime = formatShortCheckedTime(participant.checkedAt);
+
   const handleSelectQuickGrade = (grade: string, score: number) => {
     const newDivision = grade.startsWith('금')
       ? '금배부'
@@ -265,28 +287,28 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
       <div
         id={`participant-card-${participant.id}`}
         onClick={() => onToggleCheck(participant.id)}
-        className={`p-4 rounded-2xl flex flex-col justify-between transition-all duration-150 cursor-pointer select-none relative min-h-[148px] ${
+        className={`p-3 sm:p-4 rounded-2xl flex flex-col justify-between transition-all duration-150 cursor-pointer select-none relative min-h-[148px] overflow-hidden ${
           participant.checked
             ? 'bg-lime-500 text-white shadow-md border-2 border-lime-600 transform scale-[1.01] hover:scale-[1.02] active:scale-95'
-            : 'bg-white p-4 shadow-sm border border-slate-200 hover:border-slate-400 hover:shadow-md active:scale-95 text-slate-800'
+            : 'bg-white shadow-sm border border-slate-200 hover:border-slate-400 hover:shadow-md active:scale-95 text-slate-800'
         }`}
         title={participant.checked ? '터치하여 수령 취소' : '터치하여 수령 완료 체크'}
       >
         {/* Top No & Division Tag */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <p className={`text-xs font-bold uppercase tracking-wider ${participant.checked ? 'opacity-90 text-white' : 'text-slate-400'}`}>
-              No. {displayIndex}
-            </p>
+        <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center gap-1 min-w-0 shrink-0">
+            <span className={`text-[11px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0 ${participant.checked ? 'opacity-90 text-white' : 'text-slate-400'}`}>
+              No.{displayIndex}
+            </span>
             {participant.checked && (
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white text-emerald-950 shadow-xs inline-flex items-center gap-1">
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-white text-emerald-950 shadow-xs inline-flex items-center gap-0.5 whitespace-nowrap shrink-0">
                 <span>🌿</span>
                 <Check className="w-2.5 h-2.5 stroke-[3]" />
-                <span>수령완료</span>
+                <span>수령</span>
               </span>
             )}
           </div>
-          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+          <span className={`text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${
             participant.checked 
               ? 'bg-lime-700/80 text-white border-lime-400/40' 
               : getDivisionBadgeColor(effectiveDivision)
@@ -298,8 +320,8 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
         {/* Middle Name, Age & Grade (T-Shirt Size / Remark) */}
         <div className="my-1.5 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <p className={`text-2xl sm:text-3xl font-black tracking-tight truncate ${participant.checked ? 'text-white' : 'text-slate-900'}`}>
+            <div className="flex items-center gap-1 min-w-0">
+              <p className={`text-xl sm:text-2xl font-black tracking-tight truncate ${participant.checked ? 'text-white' : 'text-slate-900'}`}>
                 {participant.name}
               </p>
 
@@ -307,9 +329,9 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
               {showDeleteConfirm ? (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1 bg-white text-slate-900 px-2 py-0.5 rounded-lg border-2 border-rose-500 shadow-lg animate-in fade-in zoom-in-95"
+                  className="inline-flex items-center gap-1 bg-white text-slate-900 px-1.5 py-0.5 rounded-lg border-2 border-rose-500 shadow-lg animate-in fade-in zoom-in-95 shrink-0"
                 >
-                  <span className="text-rose-600 font-black text-[11px]">삭제?</span>
+                  <span className="text-rose-600 font-black text-[10px] whitespace-nowrap">삭제?</span>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -317,7 +339,7 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
                       onDeleteParticipant(participant.id);
                       setShowDeleteConfirm(false);
                     }}
-                    className="px-1.5 py-0.5 rounded bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] cursor-pointer shadow-xs"
+                    className="px-1.5 py-0.5 rounded bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] cursor-pointer shadow-xs whitespace-nowrap"
                     title="회원 삭제 확인"
                   >
                     확인
@@ -328,7 +350,7 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
                       e.stopPropagation();
                       setShowDeleteConfirm(false);
                     }}
-                    className="px-1.5 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[10px] cursor-pointer"
+                    className="px-1 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[10px] cursor-pointer whitespace-nowrap"
                     title="취소"
                   >
                     취소
@@ -342,7 +364,7 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
                     e.stopPropagation();
                     setShowDeleteConfirm(true);
                   }}
-                  className={`px-1.5 py-0.5 rounded-md text-[11px] font-bold inline-flex items-center gap-1 transition-all cursor-pointer shadow-2xs ${
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold inline-flex items-center gap-0.5 transition-all cursor-pointer shadow-2xs shrink-0 whitespace-nowrap ${
                     participant.checked
                       ? 'bg-rose-600/90 hover:bg-rose-600 text-white border border-rose-300/60 shadow-xs'
                       : 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200'
@@ -350,7 +372,7 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
                   title={`${participant.name} 회원 삭제`}
                   aria-label={`${participant.name} 회원 삭제`}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-3 h-3 shrink-0" />
                   <span>삭제</span>
                 </button>
               )}
@@ -423,14 +445,14 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
 
         {/* Bottom Status Row (물품 수령 클릭 및 회원 삭제 영역) */}
         <div 
-          className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100/40 gap-1.5"
+          className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100/40 gap-1.5 min-w-0"
           onClick={(e) => e.stopPropagation()}
         >
           {/* 수령 상태 토글 버튼 */}
           <button
             type="button"
             onClick={() => onToggleCheck(participant.id)}
-            className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${
+            className={`flex-1 min-w-0 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer shadow-xs active:scale-95 whitespace-nowrap ${
               participant.checked
                 ? 'bg-lime-700 text-white hover:bg-lime-800 border border-lime-400/40'
                 : 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300'
@@ -439,35 +461,37 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
           >
             {participant.checked ? (
               <>
-                <Check className="w-3.5 h-3.5 stroke-[3]" />
-                <span>수령완료 {participant.checkedAt ? `(${participant.checkedAt})` : ''}</span>
+                <Check className="w-3.5 h-3.5 stroke-[3] shrink-0" />
+                <span className="whitespace-nowrap truncate">
+                  수령완료{shortTime ? ` (${shortTime})` : ''}
+                </span>
               </>
             ) : (
               <>
-                <span className="w-2.5 h-2.5 rounded-full border-2 border-slate-400" />
-                <span>미수령 (클릭시 수령)</span>
+                <span className="w-2 h-2 rounded-full border-2 border-slate-400 shrink-0" />
+                <span className="whitespace-nowrap truncate">미수령</span>
               </>
             )}
           </button>
 
           {/* 물품 수령 클릭하는 곳 회원 삭제 버튼 */}
           {showDeleteConfirm ? (
-            <div className="inline-flex items-center gap-1 bg-white text-slate-900 px-1.5 py-0.5 rounded-lg border-2 border-rose-500 shadow-md">
-              <span className="text-rose-600 font-black text-[10px]">삭제?</span>
+            <div className="inline-flex items-center gap-1 bg-white text-slate-900 px-1.5 py-1 rounded-xl border-2 border-rose-500 shadow-md shrink-0">
+              <span className="text-rose-600 font-black text-[10px] whitespace-nowrap">삭제?</span>
               <button
                 type="button"
                 onClick={() => {
                   onDeleteParticipant(participant.id);
                   setShowDeleteConfirm(false);
                 }}
-                className="px-1.5 py-0.5 rounded bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] cursor-pointer"
+                className="px-1.5 py-0.5 rounded bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] cursor-pointer shadow-xs whitespace-nowrap"
               >
                 확인
               </button>
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-1 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[10px] cursor-pointer"
+                className="px-1 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[10px] cursor-pointer whitespace-nowrap"
               >
                 취소
               </button>
@@ -477,14 +501,14 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
               type="button"
               id={`card-bottom-delete-btn-${participant.id}`}
               onClick={() => setShowDeleteConfirm(true)}
-              className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-2xs ${
+              className={`px-2 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-2xs shrink-0 whitespace-nowrap ${
                 participant.checked
                   ? 'bg-white/20 hover:bg-rose-600 text-white border border-white/30'
                   : 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200'
               }`}
               title={`${participant.name} 회원 삭제`}
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-3.5 h-3.5 shrink-0" />
               <span>삭제</span>
             </button>
           )}
@@ -651,12 +675,12 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
             {/* Sub-line */}
             <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 flex-wrap">
               {participant.checked ? (
-                <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                <span className="inline-flex items-center gap-1 text-emerald-700 font-bold whitespace-nowrap">
                   <Clock className="w-3.5 h-3.5" />
-                  {participant.checkedAt ? `${participant.checkedAt} 수령 완료` : '수령 완료'}
+                  {shortTime ? `${shortTime} 수령 완료` : '수령 완료'}
                 </span>
               ) : (
-                <span className="text-slate-400 font-medium">미수령</span>
+                <span className="text-slate-400 font-medium whitespace-nowrap">미수령</span>
               )}
 
               {participant.phone && (
