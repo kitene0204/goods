@@ -1037,6 +1037,7 @@ export default function App() {
             config={config}
             participants={participants}
             onUpdateParticipants={handleSetParticipants}
+            onDeleteParticipant={handleDeleteParticipant}
             onOpenSyncGreenModal={() => setIsSyncGreenModalOpen(true)}
             onUpdateConfig={(updates) => {
               setConfig((prev) => ({ ...prev, ...updates }));

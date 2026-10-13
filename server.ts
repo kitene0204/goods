@@ -132,15 +132,20 @@ let serverEventConfig: EventConfig = {
   fontSize: "xlarge",
 };
 
+const UNRECEIVED_NAMES = new Set([
+  '김영현', '김한진', '배지혁', '서영진', '석영수', '편보성', '현대삼'
+]);
+
 let serverParticipants: Participant[] = HANWOOLIM_MEMBERS_DATA.map((s, idx) => {
+  const isChecked = !UNRECEIVED_NAMES.has(s.name);
   return {
     id: `p-${idx + 1}`,
     name: s.name,
     division: s.division,
     phone: s.phone || '',
     group: '',
-    checked: false,
-    checkedAt: null,
+    checked: isChecked,
+    checkedAt: isChecked ? '수령완료' : null,
     items: {},
     notes: s.notes,
     grade: s.grade,

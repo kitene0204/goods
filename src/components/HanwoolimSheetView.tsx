@@ -20,7 +20,8 @@ import {
   Search,
   CheckCircle2,
   Circle,
-  Users
+  Users,
+  Trash2
 } from 'lucide-react';
 import { EventConfig, MainAppTab, Participant } from '../types';
 import { FeeScriptPatchModal } from './FeeScriptPatchModal';
@@ -36,6 +37,7 @@ interface HanwoolimSheetViewProps {
   participants?: Participant[];
   onUpdateParticipants?: (updated: Participant[]) => void;
   onOpenSyncGreenModal?: () => void;
+  onDeleteParticipant?: (id: string) => void;
 }
 
 export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
@@ -48,6 +50,7 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
   participants = [],
   onUpdateParticipants,
   onOpenSyncGreenModal,
+  onDeleteParticipant,
 }) => {
   const [sheetUrlInput, setSheetUrlInput] = useState(config.googleSheetUrl || '');
   const [isEditingUrl, setIsEditingUrl] = useState(!config.googleSheetUrl);
@@ -96,6 +99,17 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
       return p;
     });
     onUpdateParticipants(updated);
+  };
+
+  const handleDeleteMember = (id: string, name: string) => {
+    if (window.confirm(`${name} 회원을 명단에서 삭제하시겠습니까?`)) {
+      if (onDeleteParticipant) {
+        onDeleteParticipant(id);
+      } else if (onUpdateParticipants) {
+        onUpdateParticipants(participants.filter((p) => p.id !== id));
+      }
+      onShowToast(`${name} 회원이 명단에서 삭제되었습니다.`, 'info');
+    }
   };
 
   const filteredRoster = participants.filter((p) => {
@@ -318,8 +332,11 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
                     <th className="py-3 px-3 text-center border-r border-slate-700 bg-emerald-900/60 text-emerald-200">
                       G. 등급(금,은,동)
                     </th>
-                    <th className="py-3 px-4 text-center bg-lime-900/50 text-lime-200">
+                    <th className="py-3 px-4 text-center bg-lime-900/50 text-lime-200 border-r border-slate-700">
                       수령 현황 (연두색 표시)
+                    </th>
+                    <th className="py-3 px-3 text-center bg-rose-950/70 text-rose-200 w-24">
+                      회원 삭제
                     </th>
                   </tr>
                 </thead>
@@ -342,13 +359,27 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
                           {origIndex}
                         </td>
                         <td className="py-2.5 px-4 font-black border-r border-slate-200/80">
-                          <div className="flex items-center gap-1.5">
-                            <span>{p.name}</span>
-                            {isChecked && (
-                              <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-lime-500 text-slate-950">
-                                수령
-                              </span>
-                            )}
+                          <div className="flex items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span>{p.name}</span>
+                              {isChecked && (
+                                <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-lime-500 text-slate-950">
+                                  수령
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteMember(p.id, p.name);
+                              }}
+                              className="px-1.5 py-0.5 rounded text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 inline-flex items-center gap-0.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                              title={`${p.name} 회원 삭제`}
+                            >
+                              <Trash2 className="w-3 h-3 text-rose-500" />
+                              <span>삭제</span>
+                            </button>
                           </div>
                         </td>
                         <td className="py-2.5 px-4 font-mono text-xs border-r border-slate-200/80 text-slate-600">
@@ -366,18 +397,31 @@ export const HanwoolimSheetView: React.FC<HanwoolimSheetViewProps> = ({
                         <td className="py-2.5 px-3 text-center font-black border-r border-slate-200/80 text-emerald-900 bg-emerald-50/50">
                           {gradeInfo?.grade || p.grade || '동'}
                         </td>
-                        <td className="py-2.5 px-4 text-center">
-                          {isChecked ? (
-                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-lime-500 text-slate-950 font-black text-xs shadow-xs">
-                              <Check className="w-3.5 h-3.5 stroke-[3]" />
-                              <span>수령 완료 (연두색)</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-400 font-bold text-xs">
-                              <Circle className="w-3 h-3 text-slate-300" />
-                              <span>미수령</span>
-                            </span>
-                          )}
+                        <td className="py-2.5 px-4 text-center border-r border-slate-200/80">
+                          <div className="flex items-center justify-center gap-2">
+                            {isChecked ? (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-lime-500 text-slate-950 font-black text-xs shadow-xs">
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                <span>수령 완료 (연두색)</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-400 font-bold text-xs">
+                                <Circle className="w-3 h-3 text-slate-300" />
+                                <span>미수령</span>
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMember(p.id, p.name)}
+                            className="px-2 py-1 rounded-lg text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                            title={`${p.name} 회원 삭제`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                            <span>삭제</span>
+                          </button>
                         </td>
                       </tr>
                     );

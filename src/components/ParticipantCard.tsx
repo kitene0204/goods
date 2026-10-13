@@ -47,6 +47,7 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
   const [notesDraft, setNotesDraft] = useState(participant.notes || '');
   const [proxyDraft, setProxyDraft] = useState(participant.proxyName || '');
   const [isProxyDraft, setIsProxyDraft] = useState(participant.isProxy || false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const displayIndex = String(index + 1).padStart(2, '0');
   const ageInfo = findMemberAgeInfo(participant.name);
@@ -296,10 +297,64 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
 
         {/* Middle Name, Age & Grade (T-Shirt Size / Remark) */}
         <div className="my-1.5 min-w-0">
-          <div className="flex items-baseline gap-1.5 flex-wrap">
-            <p className={`text-2xl sm:text-3xl font-black tracking-tight truncate ${participant.checked ? 'text-white' : 'text-slate-900'}`}>
-              {participant.name}
-            </p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <p className={`text-2xl sm:text-3xl font-black tracking-tight truncate ${participant.checked ? 'text-white' : 'text-slate-900'}`}>
+                {participant.name}
+              </p>
+
+              {/* 회원 삭제 버튼 (이름 바로 옆) */}
+              {showDeleteConfirm ? (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 bg-white text-slate-900 px-2 py-0.5 rounded-lg border-2 border-rose-500 shadow-lg animate-in fade-in zoom-in-95"
+                >
+                  <span className="text-rose-600 font-black text-[11px]">삭제?</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteParticipant(participant.id);
+                      setShowDeleteConfirm(false);
+                    }}
+                    className="px-1.5 py-0.5 rounded bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] cursor-pointer shadow-xs"
+                    title="회원 삭제 확인"
+                  >
+                    확인
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteConfirm(false);
+                    }}
+                    className="px-1.5 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[10px] cursor-pointer"
+                    title="취소"
+                  >
+                    취소
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  id={`card-delete-btn-${participant.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteConfirm(true);
+                  }}
+                  className={`px-1.5 py-0.5 rounded-md text-[11px] font-bold inline-flex items-center gap-1 transition-all cursor-pointer shadow-2xs ${
+                    participant.checked
+                      ? 'bg-rose-600/90 hover:bg-rose-600 text-white border border-rose-300/60 shadow-xs'
+                      : 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200'
+                  }`}
+                  title={`${participant.name} 회원 삭제`}
+                  aria-label={`${participant.name} 회원 삭제`}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>삭제</span>
+                </button>
+              )}
+            </div>
             {ageInfo && (
               <span
                 className={`inline-flex items-center gap-0.5 text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0 shadow-2xs ${
@@ -366,24 +421,72 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
           })()}
         </div>
 
-        {/* Bottom Status Row */}
-        <div className="flex justify-between items-center mt-1">
-          {participant.checked ? (
-            <>
-              <span className="text-xs bg-lime-600 px-2.5 py-1 rounded-full font-bold">
-                수령 완료 {participant.checkedAt ? `(${participant.checkedAt})` : ''}
-              </span>
-              <svg className="w-6 h-6 text-white shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </>
+        {/* Bottom Status Row (물품 수령 클릭 및 회원 삭제 영역) */}
+        <div 
+          className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100/40 gap-1.5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* 수령 상태 토글 버튼 */}
+          <button
+            type="button"
+            onClick={() => onToggleCheck(participant.id)}
+            className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${
+              participant.checked
+                ? 'bg-lime-700 text-white hover:bg-lime-800 border border-lime-400/40'
+                : 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300'
+            }`}
+            title={participant.checked ? '터치하여 수령 취소' : '터치하여 수령 완료'}
+          >
+            {participant.checked ? (
+              <>
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                <span>수령완료 {participant.checkedAt ? `(${participant.checkedAt})` : ''}</span>
+              </>
+            ) : (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full border-2 border-slate-400" />
+                <span>미수령 (클릭시 수령)</span>
+              </>
+            )}
+          </button>
+
+          {/* 물품 수령 클릭하는 곳 회원 삭제 버튼 */}
+          {showDeleteConfirm ? (
+            <div className="inline-flex items-center gap-1 bg-white text-slate-900 px-1.5 py-0.5 rounded-lg border-2 border-rose-500 shadow-md">
+              <span className="text-rose-600 font-black text-[10px]">삭제?</span>
+              <button
+                type="button"
+                onClick={() => {
+                  onDeleteParticipant(participant.id);
+                  setShowDeleteConfirm(false);
+                }}
+                className="px-1.5 py-0.5 rounded bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] cursor-pointer"
+              >
+                확인
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-1 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[10px] cursor-pointer"
+              >
+                취소
+              </button>
+            </div>
           ) : (
-            <>
-              <p className="text-xs text-slate-400 font-medium italic">
-                미수령 (터치시 체크)
-              </p>
-              <div className="w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center shrink-0" />
-            </>
+            <button
+              type="button"
+              id={`card-bottom-delete-btn-${participant.id}`}
+              onClick={() => setShowDeleteConfirm(true)}
+              className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-2xs ${
+                participant.checked
+                  ? 'bg-white/20 hover:bg-rose-600 text-white border border-white/30'
+                  : 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200'
+              }`}
+              title={`${participant.name} 회원 삭제`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>삭제</span>
+            </button>
           )}
         </div>
         {renderQuickGradeModal()}
@@ -425,9 +528,59 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
           {/* Details */}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`font-black tracking-tight text-lg sm:text-xl ${participant.checked ? 'text-emerald-950' : 'text-slate-900'}`}>
-                {participant.name}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className={`font-black tracking-tight text-lg sm:text-xl ${participant.checked ? 'text-emerald-950' : 'text-slate-900'}`}>
+                  {participant.name}
+                </span>
+
+                {/* 리스트 뷰 회원 이름 옆 삭제 버튼 */}
+                {showDeleteConfirm ? (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 bg-white text-slate-900 px-2 py-0.5 rounded-lg border-2 border-rose-500 shadow-md animate-in fade-in zoom-in-95"
+                  >
+                    <span className="text-rose-600 font-extrabold text-[11px]">정말 삭제?</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteParticipant(participant.id);
+                        setShowDeleteConfirm(false);
+                      }}
+                      className="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-700 text-white font-black text-xs cursor-pointer shadow-xs"
+                      title="회원 삭제 확인"
+                    >
+                      확인
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDeleteConfirm(false);
+                      }}
+                      className="px-1.5 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer"
+                      title="취소"
+                    >
+                      취소
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    id={`list-delete-btn-${participant.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteConfirm(true);
+                    }}
+                    className="px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                    title={`${participant.name} 회원 삭제`}
+                    aria-label={`${participant.name} 회원 삭제`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                    <span>삭제</span>
+                  </button>
+                )}
+              </div>
 
               {participant.checked && (
                 <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-lime-500 text-slate-950 shadow-2xs inline-flex items-center gap-1">
@@ -531,19 +684,66 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
           </div>
         </div>
 
-        {/* Right: Quick Action Button / Expand Toggle */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        {/* Right: Quick Action Button (물품 수령 클릭하는 곳) + 회원 삭제 버튼 */}
+        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+          {/* 1. 물품 수령 클릭 버튼 */}
           <button
             id={`status-toggle-btn-${participant.id}`}
             onClick={() => onToggleCheck(participant.id)}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-sm ${
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-sm flex items-center gap-1.5 ${
               participant.checked
                 ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
                 : 'bg-slate-900 hover:bg-slate-800 text-lime-400 shadow-sm'
             }`}
           >
-            {participant.checked ? '수령취소' : '수령체크'}
+            {participant.checked ? (
+              <>
+                <Check className="w-4 h-4 stroke-[3] text-emerald-600" />
+                <span>수령취소</span>
+              </>
+            ) : (
+              <>
+                <span>수령체크</span>
+              </>
+            )}
           </button>
+
+          {/* 2. 물품 수령 클릭하는 곳 바로 옆 회원 삭제 버튼 */}
+          {showDeleteConfirm ? (
+            <div className="inline-flex items-center gap-1 bg-white p-1 rounded-xl border-2 border-rose-500 shadow-lg animate-in fade-in">
+              <span className="text-rose-600 font-black text-xs pl-1">삭제?</span>
+              <button
+                type="button"
+                onClick={() => {
+                  onDeleteParticipant(participant.id);
+                  setShowDeleteConfirm(false);
+                }}
+                className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-black text-xs cursor-pointer shadow-xs"
+                title="회원 삭제 확인"
+              >
+                확인
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-1.5 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer"
+                title="취소"
+              >
+                취소
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              id={`list-action-delete-btn-${participant.id}`}
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-2.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 border border-rose-300 font-bold text-xs sm:text-sm flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+              title={`${participant.name} 회원 삭제`}
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>삭제</span>
+            </button>
+          )}
 
           <button
             id={`expand-btn-${participant.id}`}

@@ -109,17 +109,24 @@ export const HANWOOLIM_CLUB_MEMBERS: ClubMember[] = RAW_HANWOOLIM_CLUB_MEMBERS.m
 
 export const SAMPLE_CLUB_MEMBERS = HANWOOLIM_CLUB_MEMBERS;
 
-// 한울림 회원 명부 기반 기본 대회 참석자 68명 전체 (공식 마스터 DB 연동)
+// 한울림 구글 시트 '회원명부(정회원)' 공식 미수령 7명 (김영현, 김한진, 배지혁, 서영진, 석영수, 편보성, 현대삼)
+// 나머지 59명은 물품(단체티) 수령 완료로 구글 시트 원본 연두색 표시 반영
+export const UNRECEIVED_NAMES = new Set([
+  '김영현', '김한진', '배지혁', '서영진', '석영수', '편보성', '현대삼'
+]);
+
+// 한울림 회원 명부 기반 기본 대회 참석자 68명 전체 (구글 시트 연두색 수령 59명 100% 반영)
 const RAW_INITIAL_PARTICIPANTS: Participant[] = RAW_HANWOOLIM_CLUB_MEMBERS.map((m, idx) => {
   const g = findMemberGradeInfo(m.name);
+  const isChecked = !UNRECEIVED_NAMES.has(m.name);
   return {
     id: `p-${idx + 1}`,
     name: m.name,
     phone: m.phone || '',
     division: g?.division || m.division || '동배부',
     group: '',
-    checked: false,
-    checkedAt: null,
+    checked: isChecked,
+    checkedAt: isChecked ? '수령완료' : null,
     items: {},
     notes: m.notes || '',
     grade: g?.grade || '동',
@@ -183,9 +190,8 @@ export function loadParticipants(): Participant[] {
     if (saved !== null) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const allUnchecked = parsed.every((p: any) => !p.checked);
         // Sanitize legacy mock data (gift, lunch, fee) if present from previous samples
-        const cleaned = parsed.map((p: any) => {
+        let cleaned = parsed.map((p: any) => {
           let items = p.items || {};
           const keys = Object.keys(items);
           const isLegacyDefaultItems =
@@ -229,6 +235,19 @@ export function loadParticipants(): Participant[] {
             division: finalDivision,
           };
         });
+
+        // 만약 전체 회원의 수령 체크가 0명이면 구글 시트 원본 연두색 수령 현황(59명) 자동 복구
+        const isAllUnchecked = cleaned.every((p) => !p.checked);
+        if (isAllUnchecked) {
+          cleaned = cleaned.map((p) => {
+            const isGreen = !UNRECEIVED_NAMES.has(p.name);
+            return {
+              ...p,
+              checked: isGreen,
+              checkedAt: isGreen ? '수령완료' : null,
+            };
+          });
+        }
 
         localStorage.setItem(STORAGE_KEYS.PARTICIPANTS, JSON.stringify(cleaned));
         return [...cleaned].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
