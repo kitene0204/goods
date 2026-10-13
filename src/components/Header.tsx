@@ -163,7 +163,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          {/* 4. 한울림 정보 & 2025 결산 구글 시트 탭 버튼 */}
+          {/* 4. 한울림 정보 구글 시트 탭 버튼 */}
           <button
             id="header-sheet-btn"
             onClick={() => onSelectTab('sheet')}
@@ -172,13 +172,10 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-teal-600 text-white ring-2 ring-teal-300 shadow-teal-600/30'
                 : 'bg-teal-950/80 hover:bg-teal-900 text-teal-200 border border-teal-500/40 hover:border-teal-400'
             }`}
-            title="한울림 구글 시트 및 2025 회계 결산 열기"
+            title="한울림 구글 시트 열기"
           >
             <FileSpreadsheet className="w-4 h-4 text-teal-300" />
             <span className="whitespace-nowrap">구글 시트</span>
-            <span className="text-[9px] bg-teal-400 text-slate-950 px-1.5 py-0.2 rounded font-mono font-bold whitespace-nowrap">
-              결산
-            </span>
           </button>
         </div>
 

@@ -123,7 +123,22 @@ export function dbRowToParticipant(row: any): Participant {
     phone: row.phone || '',
     group: row.group || '',
     checked: Boolean(row.checked),
-    checkedAt: row.checked_at || null,
+    checkedAt: (() => {
+      if (!row.checked_at) return Boolean(row.checked) ? '수령완료' : null;
+      const str = String(row.checked_at);
+      if (str.includes('T')) {
+        try {
+          const d = new Date(str);
+          if (!isNaN(d.getTime())) {
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            return `${hh}:${mm}`;
+          }
+        } catch {}
+        return '수령완료';
+      }
+      return str;
+    })(),
     isProxy: Boolean(row.is_proxy),
     proxyName: row.proxy_name || '',
     notes: row.notes || '',

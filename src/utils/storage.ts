@@ -218,9 +218,23 @@ export function loadParticipants(): Participant[] {
           const clubMember = RAW_HANWOOLIM_CLUB_MEMBERS.find((m) => m.name === p.name);
           const finalPhone = p.phone || clubMember?.phone || '';
 
-          // 수령완료(연두색) 상태 유지
+          // 수령완료(연두색) 상태 유지 (긴 ISO 타임스탬프 문자열 자동 정제)
           const finalChecked = !!p.checked;
-          const finalCheckedAt = p.checkedAt || (finalChecked ? '수령완료' : null);
+          let finalCheckedAt: string | null = p.checkedAt || (finalChecked ? '수령완료' : null);
+          if (finalCheckedAt && finalCheckedAt.includes('T')) {
+            try {
+              const d = new Date(finalCheckedAt);
+              if (!isNaN(d.getTime())) {
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mm = String(d.getMinutes()).padStart(2, '0');
+                finalCheckedAt = `${hh}:${mm}`;
+              } else {
+                finalCheckedAt = '수령완료';
+              }
+            } catch {
+              finalCheckedAt = '수령완료';
+            }
+          }
 
           return {
             ...p,

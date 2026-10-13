@@ -750,7 +750,7 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* 4. 한울림 정보 & 2025 결산 구글 시트 (NEW!) */}
+                {/* 4. 한울림 정보 구글 시트 */}
                 <div className="flex items-center gap-1">
                   <button
                     id="sidebar-sheet-btn"
@@ -763,11 +763,8 @@ export default function App() {
                   >
                     <div className="flex items-center gap-1.5 truncate">
                       <FileSpreadsheet className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                      <span className="truncate">구글 시트 결산</span>
+                      <span className="truncate">구글 시트</span>
                     </div>
-                    <span className="text-[9px] bg-teal-400 text-slate-950 px-1 py-0.2 rounded font-mono font-bold">
-                      2025
-                    </span>
                   </button>
                   {config.googleSheetUrl ? (
                     <a

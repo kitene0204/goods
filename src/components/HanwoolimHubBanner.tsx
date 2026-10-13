@@ -247,7 +247,7 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
           </div>
         </div>
 
-        {/* 4. ⭐ 한울림 정보 & 2025 결산 구글 시트 (NEW!) */}
+        {/* 4. ⭐ 한울림 정보 구글 시트 */}
         <div className="group bg-slate-800/80 hover:bg-slate-800 border-2 border-teal-500/50 hover:border-teal-400 rounded-2xl p-3 sm:p-3.5 transition-all duration-200 shadow-md hover:shadow-teal-500/10 flex flex-col justify-between">
           <div>
             <div className="flex items-start justify-between gap-2 mb-2">
@@ -256,17 +256,9 @@ export const HanwoolimHubBanner: React.FC<HanwoolimHubBannerProps> = ({
                   <FileSpreadsheet className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 flex-nowrap">
-                    <h3 className="text-sm font-black text-white group-hover:text-teal-200 transition-colors whitespace-nowrap">
-                      한울림 구글 시트
-                    </h3>
-                    <span className="text-[9px] font-black bg-teal-400 text-slate-950 px-1.5 py-0.2 rounded-md whitespace-nowrap shrink-0">
-                      2025 결산
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-300 font-medium truncate mt-0.5">
-                    이월금 1,045만 원 & 회계 시트
-                  </p>
+                  <h3 className="text-sm font-black text-white group-hover:text-teal-200 transition-colors whitespace-nowrap">
+                    한울림 구글 시트
+                  </h3>
                 </div>
               </div>
             </div>
